@@ -5,6 +5,7 @@ from .config import Config
 from .extensions import cors, db, jwt, migrate
 from .routes import api
 from .routes.auth_routes import auth_bp
+from .routes.category_routes import category_bp
 from .routes.user_routes import user_bp
 
 
@@ -19,6 +20,7 @@ def create_app() -> Flask:
 
     app.register_blueprint(api)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(category_bp)
     app.register_blueprint(user_bp)
 
     return app
