@@ -3,10 +3,7 @@ from flask import Flask
 from . import models
 from .config import Config
 from .extensions import cors, db, jwt, migrate
-from .routes import api
-from .routes.auth_routes import auth_bp
-from .routes.category_routes import category_bp
-from .routes.user_routes import user_bp
+from .routes import blueprints
 
 
 def create_app() -> Flask:
@@ -18,9 +15,7 @@ def create_app() -> Flask:
     jwt.init_app(app)
     cors.init_app(app)
 
-    app.register_blueprint(api)
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(category_bp)
-    app.register_blueprint(user_bp)
+    for blueprint in blueprints:
+        app.register_blueprint(blueprint)
 
     return app
