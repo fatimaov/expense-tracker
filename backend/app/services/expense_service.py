@@ -64,11 +64,18 @@ def update_expense(
     notes: object = None,
 ) -> Expense:
     expense = _get_owned_expense(expense_id, user_id)
-    expense.amount = validate_positive_amount(amount)
-    expense.title = validate_required_string(title, "Title")
-    expense.expense_date = validate_expense_date(expense_date)
-    expense.category = validate_expense_category(category)
-    expense.notes = _validate_optional_notes(notes)
+
+    validated_amount = validate_positive_amount(amount)
+    validated_title = validate_required_string(title, "Title")
+    validated_expense_date = validate_expense_date(expense_date)
+    validated_category = validate_expense_category(category)
+    validated_notes = _validate_optional_notes(notes)
+
+    expense.amount = validated_amount
+    expense.title = validated_title
+    expense.expense_date = validated_expense_date
+    expense.category = validated_category
+    expense.notes = validated_notes
 
     _commit()
     return expense
