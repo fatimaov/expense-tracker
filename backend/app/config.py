@@ -14,6 +14,8 @@ def _as_bool(value: str | None) -> bool:
 
 class Config:
     DATABASE_URL = os.getenv("DATABASE_URL")
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     FLASK_ENV = os.getenv("FLASK_ENV", "production")
     FLASK_DEBUG = _as_bool(os.getenv("FLASK_DEBUG"))
