@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -21,6 +22,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)
     FLASK_ENV = os.getenv("FLASK_ENV", "production")
     FLASK_DEBUG = _as_bool(os.getenv("FLASK_DEBUG"))
     DEBUG = FLASK_DEBUG
