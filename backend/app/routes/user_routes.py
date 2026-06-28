@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
-from ..models import User
+from ..serializers import serialize_user
 from ..services.auth_service import get_user_by_id
 
 
@@ -22,13 +22,5 @@ def get_current_user():
 
     return jsonify(
         message="User retrieved successfully.",
-        data={"user": _user_data(user)},
+        data={"user": serialize_user(user)},
     )
-
-
-def _user_data(user: User) -> dict[str, int | str]:
-    return {
-        "id": user.id,
-        "email": user.email,
-        "created_at": user.created_at.isoformat(),
-    }

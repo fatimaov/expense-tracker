@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
-from ..models import Expense
+from ..serializers import serialize_expense
 from ..services.expense_service import (
     ExpenseNotFoundError,
     create_expense,
@@ -35,7 +35,7 @@ def create_user_expense():
     except ValidationError as error:
         return jsonify(error=str(error)), 400
 
-    return jsonify(expense=_expense_data(expense)), 201
+    return jsonify(expense=serialize_expense(expense)), 201
 
 
 @expense_bp.get("/expenses")
@@ -47,7 +47,7 @@ def list_user_expenses():
         return jsonify(error=str(error)), 401
 
     expenses = get_user_expenses(user_id)
-    return jsonify(expenses=[_expense_data(expense) for expense in expenses])
+    return jsonify(expenses=[serialize_expense(expense) for expense in expenses])
 
 
 @expense_bp.get("/expenses/<int:expense_id>")
@@ -62,7 +62,7 @@ def get_user_expense(expense_id: int):
     if expense is None:
         return jsonify(error="Expense not found."), 404
 
-    return jsonify(expense=_expense_data(expense))
+    return jsonify(expense=serialize_expense(expense))
 
 
 @expense_bp.put("/expenses/<int:expense_id>")
@@ -87,7 +87,7 @@ def update_user_expense(expense_id: int):
     except ExpenseNotFoundError as error:
         return jsonify(error=str(error)), 404
 
-    return jsonify(expense=_expense_data(expense))
+    return jsonify(expense=serialize_expense(expense))
 
 
 @expense_bp.delete("/expenses/<int:expense_id>")
@@ -122,15 +122,3 @@ def _get_json_body() -> dict[str, object]:
     if not isinstance(body, dict):
         raise ValidationError("Request body must be a valid JSON object.")
     return body
-
-
-def _expense_data(expense: Expense) -> dict[str, int | float | str | None]:
-    return {
-        "id": expense.id,
-        "amount": float(expense.amount),
-        "title": expense.title,
-        "expense_date": expense.expense_date.isoformat(),
-        "category": expense.category.value,
-        "notes": expense.notes,
-        "created_at": expense.created_at.isoformat(),
-    }

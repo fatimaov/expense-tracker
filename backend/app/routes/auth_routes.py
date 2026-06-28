@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-from ..models import User
+from ..serializers import serialize_user
 from ..services.auth_service import (
     EmailAlreadyExistsError,
     InvalidCredentialsError,
@@ -26,7 +26,7 @@ def register():
     return (
         jsonify(
             message="User registered successfully.",
-            data={"user": _user_data(result.user)},
+            data={"user": serialize_user(result.user)},
         ),
         201,
     )
@@ -46,7 +46,7 @@ def login():
         message="Login successful.",
         data={
             "access_token": result.access_token,
-            "user": _user_data(result.user),
+            "user": serialize_user(result.user),
         },
     )
 
@@ -56,7 +56,3 @@ def _get_json_body() -> dict[str, object]:
     if not isinstance(body, dict):
         raise ValidationError("Request body must be a valid JSON object.")
     return body
-
-
-def _user_data(user: User) -> dict[str, int | str]:
-    return {"id": user.id, "email": user.email}
