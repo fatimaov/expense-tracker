@@ -1,5 +1,6 @@
 from flask import Flask
 
+from . import models
 from .config import Config
 from .extensions import cors, db, jwt, migrate
 from .routes import api
