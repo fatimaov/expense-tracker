@@ -1,4 +1,6 @@
 import { createBrowserRouter } from 'react-router'
+import ProtectedRoute from '../components/ProtectedRoute.jsx'
+import PublicRoute from '../components/PublicRoute.jsx'
 import AddExpensePage from '../pages/AddExpensePage.jsx'
 import EditExpensePage from '../pages/EditExpensePage.jsx'
 import ExpensesPage from '../pages/ExpensesPage.jsx'
@@ -8,23 +10,43 @@ import RegisterPage from '../pages/RegisterPage.jsx'
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <LoginPage />,
+    element: (
+      <PublicRoute>
+        <LoginPage />
+      </PublicRoute>
+    ),
   },
   {
     path: '/register',
-    element: <RegisterPage />,
+    element: (
+      <PublicRoute>
+        <RegisterPage />
+      </PublicRoute>
+    ),
   },
   {
     path: '/expenses',
-    element: <ExpensesPage />,
+    element: (
+      <ProtectedRoute>
+        <ExpensesPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/expenses/new',
-    element: <AddExpensePage />,
+    element: (
+      <ProtectedRoute>
+        <AddExpensePage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/expenses/:id/edit',
-    element: <EditExpensePage />,
+    element: (
+      <ProtectedRoute>
+        <EditExpensePage />
+      </ProtectedRoute>
+    ),
   },
 ])
 
