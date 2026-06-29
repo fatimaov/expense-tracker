@@ -8,8 +8,12 @@ function login(credentials) {
   return apiClient.post('/login', credentials)
 }
 
-function getCurrentUser() {
-  return apiClient.get('/me')
+function getCurrentUser(token) {
+  return apiClient.get('/me', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
 }
 
 export const authService = {
