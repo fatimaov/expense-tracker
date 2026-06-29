@@ -142,14 +142,16 @@ function EditExpensePage() {
                 isSubmitting={isBusy}
               />
 
-              <button
-                className="btn btn-outline-danger mt-4"
-                type="button"
-                onClick={handleDelete}
-                disabled={isBusy}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete Expense'}
-              </button>
+              <div className="d-grid d-sm-block mt-4">
+                <button
+                  className="btn btn-outline-danger"
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isBusy}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Expense'}
+                </button>
+              </div>
             </>
           )}
         </div>

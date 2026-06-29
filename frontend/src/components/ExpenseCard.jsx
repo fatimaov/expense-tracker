@@ -17,9 +17,11 @@ function ExpenseCard({ expense, onEdit }) {
   return (
     <article className="card shadow-sm">
       <div className="card-body">
-        <div className="d-flex justify-content-between align-items-start gap-3">
-          <div>
-            <h2 className="h5 card-title mb-1">{expense.title}</h2>
+        <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2 gap-sm-3">
+          <div className="flex-grow-1">
+            <h2 className="h5 card-title text-break mb-1">
+              {expense.title}
+            </h2>
             <p className="text-secondary mb-2">
               {formatDate(expense.expense_date)} · {expense.category}
             </p>
@@ -29,7 +31,9 @@ function ExpenseCard({ expense, onEdit }) {
           </strong>
         </div>
 
-        {expense.notes && <p className="card-text mb-0">{expense.notes}</p>}
+        {expense.notes && (
+          <p className="card-text text-break mb-0">{expense.notes}</p>
+        )}
 
         {onEdit && (
           <button

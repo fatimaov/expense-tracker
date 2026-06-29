@@ -53,54 +53,58 @@ function ExpensesPage() {
 
   return (
     <main className="container py-4">
-      <div className="d-flex align-items-center justify-content-between gap-3 mb-4">
-        <h1 className="mb-0">Expenses</h1>
-        <div className="d-flex flex-wrap justify-content-end gap-2">
-          {!isLoading && !error && expenses.length > 0 && (
-            <Link className="btn btn-primary" to="/expenses/new">
-              Add Expense
-            </Link>
+      <div className="row justify-content-center">
+        <div className="col-12 col-lg-10 col-xl-8">
+          <div className="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-3 mb-4">
+            <h1 className="mb-0">Expenses</h1>
+            <div className="d-grid d-sm-flex gap-2">
+              {!isLoading && !error && expenses.length > 0 && (
+                <Link className="btn btn-primary" to="/expenses/new">
+                  Add Expense
+                </Link>
+              )}
+              <button
+                className="btn btn-outline-secondary"
+                type="button"
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+
+          {isLoading && <LoadingState message="Loading expenses..." />}
+
+          {!isLoading && error && (
+            <div className="alert alert-danger" role="alert" aria-live="polite">
+              <p className="mb-2">{error}</p>
+              <button
+                className="btn btn-outline-danger btn-sm"
+                type="button"
+                onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+              >
+                Try Again
+              </button>
+            </div>
           )}
-          <button
-            className="btn btn-outline-secondary"
-            type="button"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
+
+          {!isLoading && !error && expenses.length === 0 && (
+            <EmptyState onAddExpense={() => navigate('/expenses/new')} />
+          )}
+
+          {!isLoading && !error && expenses.length > 0 && (
+            <div className="d-grid gap-3">
+              {expenses.map((expense) => (
+                <ExpenseCard
+                  key={expense.id}
+                  expense={expense}
+                  onEdit={() => navigate(`/expenses/${expense.id}/edit`)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      {isLoading && <LoadingState message="Loading expenses..." />}
-
-      {!isLoading && error && (
-        <div className="alert alert-danger" role="alert" aria-live="polite">
-          <p className="mb-2">{error}</p>
-          <button
-            className="btn btn-outline-danger btn-sm"
-            type="button"
-            onClick={() => setLoadAttempt((attempt) => attempt + 1)}
-          >
-            Try Again
-          </button>
-        </div>
-      )}
-
-      {!isLoading && !error && expenses.length === 0 && (
-        <EmptyState onAddExpense={() => navigate('/expenses/new')} />
-      )}
-
-      {!isLoading && !error && expenses.length > 0 && (
-        <div className="d-grid gap-3">
-          {expenses.map((expense) => (
-            <ExpenseCard
-              key={expense.id}
-              expense={expense}
-              onEdit={() => navigate(`/expenses/${expense.id}/edit`)}
-            />
-          ))}
-        </div>
-      )}
     </main>
   )
 }

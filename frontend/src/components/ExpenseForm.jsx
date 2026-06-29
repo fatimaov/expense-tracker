@@ -143,7 +143,7 @@ function ExpenseForm({
         />
       </div>
 
-      <div className="d-flex gap-2">
+      <div className="d-grid d-sm-flex gap-2">
         <button
           className="btn btn-primary"
           type="submit"
