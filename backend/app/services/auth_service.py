@@ -36,7 +36,7 @@ def register_user(email: object, password: object) -> AuthResult:
         select(User).where(User.email == validated_email)
     )
     if existing_user is not None:
-        raise EmailAlreadyExistsError("A user with this email already exists.")
+        raise EmailAlreadyExistsError("Registration failed. Please check your information and try again.")
 
     user = User(
         email=validated_email,
@@ -49,7 +49,7 @@ def register_user(email: object, password: object) -> AuthResult:
     except IntegrityError:
         db.session.rollback()
         raise EmailAlreadyExistsError(
-            "A user with this email already exists."
+            "Registration failed. Please check your information and try again."
         ) from None
 
     return AuthResult(user=user)

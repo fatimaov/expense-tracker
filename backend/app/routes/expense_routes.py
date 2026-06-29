@@ -11,6 +11,7 @@ from ..services.expense_service import (
     update_expense,
 )
 from ..services.validators import ValidationError
+from ..utils import error_response
 
 
 expense_bp = Blueprint("expenses", __name__, url_prefix="/api")
@@ -31,9 +32,9 @@ def create_user_expense():
             notes=body.get("notes"),
         )
     except InvalidUserIdentityError as error:
-        return jsonify(error=str(error)), 401
+        return error_response(str(error), "INVALID_TOKEN_IDENTITY", 401)
     except ValidationError as error:
-        return jsonify(error=str(error)), 400
+        return error_response(str(error), "VALIDATION_ERROR", 400)
 
     return jsonify(expense=serialize_expense(expense)), 201
 
@@ -44,7 +45,7 @@ def list_user_expenses():
     try:
         user_id = _get_user_id()
     except InvalidUserIdentityError as error:
-        return jsonify(error=str(error)), 401
+        return error_response(str(error), "INVALID_TOKEN_IDENTITY", 401)
 
     expenses = get_user_expenses(user_id)
     return jsonify(expenses=[serialize_expense(expense) for expense in expenses])
@@ -56,11 +57,11 @@ def get_user_expense(expense_id: int):
     try:
         user_id = _get_user_id()
     except InvalidUserIdentityError as error:
-        return jsonify(error=str(error)), 401
+        return error_response(str(error), "INVALID_TOKEN_IDENTITY", 401)
 
     expense = get_expense_by_id(expense_id, user_id)
     if expense is None:
-        return jsonify(error="Expense not found."), 404
+        return error_response("Expense not found.", "EXPENSE_NOT_FOUND", 404)
 
     return jsonify(expense=serialize_expense(expense))
 
@@ -81,11 +82,11 @@ def update_user_expense(expense_id: int):
             notes=body.get("notes"),
         )
     except InvalidUserIdentityError as error:
-        return jsonify(error=str(error)), 401
+        return error_response(str(error), "INVALID_TOKEN_IDENTITY", 401)
     except ValidationError as error:
-        return jsonify(error=str(error)), 400
+        return error_response(str(error), "VALIDATION_ERROR", 400)
     except ExpenseNotFoundError as error:
-        return jsonify(error=str(error)), 404
+        return error_response(str(error), "EXPENSE_NOT_FOUND", 404)
 
     return jsonify(expense=serialize_expense(expense))
 
@@ -97,9 +98,9 @@ def delete_user_expense(expense_id: int):
         user_id = _get_user_id()
         delete_expense(expense_id, user_id)
     except InvalidUserIdentityError as error:
-        return jsonify(error=str(error)), 401
+        return error_response(str(error), "INVALID_TOKEN_IDENTITY", 401)
     except ExpenseNotFoundError as error:
-        return jsonify(error=str(error)), 404
+        return error_response(str(error), "EXPENSE_NOT_FOUND", 404)
 
     return jsonify(message="Expense deleted successfully.")
 

@@ -8,6 +8,7 @@ from ..services.auth_service import (
     register_user,
 )
 from ..services.validators import ValidationError
+from ..utils import error_response
 
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
@@ -19,9 +20,9 @@ def register():
         body = _get_json_body()
         result = register_user(body.get("email"), body.get("password"))
     except ValidationError as error:
-        return jsonify(error=str(error)), 400
+        return error_response(str(error), "VALIDATION_ERROR", 400)
     except EmailAlreadyExistsError as error:
-        return jsonify(error=str(error)), 409
+        return error_response(str(error), "EMAIL_ALREADY_EXISTS", 409)
 
     return (
         jsonify(
@@ -38,9 +39,9 @@ def login():
         body = _get_json_body()
         result = login_user(body.get("email"), body.get("password"))
     except ValidationError as error:
-        return jsonify(error=str(error)), 400
+        return error_response(str(error), "VALIDATION_ERROR", 400)
     except InvalidCredentialsError as error:
-        return jsonify(error=str(error)), 401
+        return error_response(str(error), "INVALID_CREDENTIALS", 401)
 
     return jsonify(
         message="Login successful.",
