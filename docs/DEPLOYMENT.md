@@ -54,7 +54,7 @@ DATABASE_URL=postgresql://render-user:password@render-host/expense_tracker
 JWT_SECRET_KEY=replace-with-a-long-random-production-secret
 FLASK_ENV=production
 FLASK_DEBUG=0
-CORS_ORIGINS=https://your-app.vercel.app
+CORS_ORIGINS=https://expense-tracker-liart-three-87.vercel.app
 ```
 
 Use the internal connection string supplied by Render PostgreSQL rather than
@@ -75,7 +75,7 @@ VITE_API_BASE_URL=http://localhost:5000/api
 Vercel example:
 
 ```dotenv
-VITE_API_BASE_URL=https://your-api.onrender.com/api
+VITE_API_BASE_URL=https://expense-tracker-api-8aad.onrender.com/api
 ```
 
 Vite embeds this value at build time. Redeploy the frontend after changing it.
@@ -125,7 +125,8 @@ Open the URL printed by Vite, normally `http://localhost:5173`.
 
 ## 4. Database Migrations
 
-Run migration commands from `backend`.
+Run migration commands from `backend`. Flask-Migrate uses Alembic underneath,
+and generated revisions are stored in `backend/migrations/versions`.
 
 Create a migration after changing SQLAlchemy models:
 
@@ -174,7 +175,7 @@ Set these environment variables:
 
 - `DATABASE_URL`: Render PostgreSQL internal connection string
 - `JWT_SECRET_KEY`: long, random production secret
-- `CORS_ORIGINS`: deployed Vercel frontend origin without a trailing slash
+- `CORS_ORIGINS`: `https://expense-tracker-liart-three-87.vercel.app`
 - `FLASK_ENV=production` (optional because it is the default)
 - `FLASK_DEBUG=0` (optional but recommended explicitly)
 
@@ -183,7 +184,8 @@ For the first deployment:
 1. Deploy the web service.
 2. Open its Render Shell.
 3. Run `pipenv run flask --app run:app db upgrade`.
-4. Verify `https://your-api.onrender.com/api/health`.
+4. Verify
+   `https://expense-tracker-api-8aad.onrender.com/api/health`.
 
 Run the migration command again after deployments that contain new migration
 files.
@@ -201,7 +203,7 @@ Import the same repository into Vercel and configure:
 Add this production environment variable before building:
 
 ```dotenv
-VITE_API_BASE_URL=https://your-api.onrender.com/api
+VITE_API_BASE_URL=https://expense-tracker-api-8aad.onrender.com/api
 ```
 
 The repository includes `frontend/vercel.json` to support React Router URLs on
@@ -235,10 +237,23 @@ After Vercel assigns the frontend URL, set the Render service's
 use different origins; add them explicitly as comma-separated values only when
 they need API access.
 
+### Production deployment workflow
+
+1. Create the Render PostgreSQL database.
+2. Create the Render Web Service and configure its environment variables.
+3. Deploy the backend and apply Alembic migrations from the Render Shell.
+4. Verify the Render health endpoint.
+5. Deploy the Vercel frontend with `VITE_API_BASE_URL` pointing to Render.
+6. Set Render's `CORS_ORIGINS` to the final Vercel origin and redeploy it.
+7. Complete the smoke test below.
+
 ## 7. Post-Deployment Smoke Test
 
-1. Open `https://your-api.onrender.com/api/health`; expect an `ok` response.
-2. Open the Vercel frontend and register a new account.
+1. Open
+   `https://expense-tracker-api-8aad.onrender.com/api/health`; expect an `ok`
+   response.
+2. Open `https://expense-tracker-liart-three-87.vercel.app/` and register a new
+   account.
 3. Log in if registration does not leave the session active.
 4. Create an expense and verify it appears in the list.
 5. Edit the expense and verify the changes.
