@@ -201,7 +201,7 @@ Confirm the success criteria:
 ## Phase 11 — Deployment Prep
 
 1. Prepare backend for Render.
-2. Prepare PostgreSQL database on Render.
+2. Prepare PostgreSQL database on Supabase and configure its Session Pooler.
 3. Add backend environment variables:
 
    * `DATABASE_URL`

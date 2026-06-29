@@ -26,9 +26,9 @@ per-user data, fixed expense categories, and complete expense CRUD workflows.
 
 - Frontend: React, Vite, React Router, Bootstrap
 - Backend: Flask, SQLAlchemy, Flask-Migrate/Alembic, Gunicorn
-- Database: PostgreSQL
+- Database: Supabase PostgreSQL
 - Authentication: JSON Web Tokens
-- Hosting: Vercel, Render Web Service, Render PostgreSQL
+- Hosting: Vercel, Render Web Service, Supabase
 - Dependency management: npm and Pipenv
 
 ## Project Structure
@@ -50,6 +50,15 @@ expense-tracker/
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for local setup, environment
 variables, migrations, production deployment, and smoke testing.
+
+## Current Architecture
+
+```text
+Browser
+  -> Vercel (React + Vite frontend)
+  -> Render (Flask API served by Gunicorn)
+  -> Supabase PostgreSQL (Session Pooler)
+```
 
 ## Current Status
 

@@ -1,8 +1,8 @@
 # Deployment Guide
 
-This guide covers local development and production deployment of the Flask API
-to Render and the React frontend to Vercel. Run commands from the repository
-root unless a section says otherwise.
+This guide covers local development and the production architecture: a React
+frontend on Vercel, a Flask API on Render, and PostgreSQL on Supabase. Run
+commands from the repository root unless a section says otherwise.
 
 ## 1. Prerequisites
 
@@ -47,18 +47,19 @@ FLASK_DEBUG=1
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
-Render example:
+Production backend example:
 
 ```dotenv
-DATABASE_URL=postgresql://render-user:password@render-host/expense_tracker
+DATABASE_URL=postgresql://postgres.PROJECT_REF:DB_PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
 JWT_SECRET_KEY=replace-with-a-long-random-production-secret
 FLASK_ENV=production
 FLASK_DEBUG=0
 CORS_ORIGINS=https://expense-tracker-liart-three-87.vercel.app
 ```
 
-Use the internal connection string supplied by Render PostgreSQL rather than
-typing `DATABASE_URL` manually.
+Copy the Session Pooler connection string from **Supabase Dashboard > Connect**
+and replace its password placeholder with the database password. Keep the real
+connection string and password only in Render environment variables.
 
 ### Frontend
 
@@ -141,7 +142,8 @@ locally with:
 pipenv run flask --app run:app db upgrade
 ```
 
-Apply migrations in production from the Render Shell:
+Apply migrations in production from the Render Shell. The command connects to
+Supabase through the Render service's `DATABASE_URL`:
 
 ```bash
 pipenv run flask --app run:app db upgrade
@@ -150,15 +152,59 @@ pipenv run flask --app run:app db upgrade
 Run the production command after the first deployment and whenever new
 migration files are deployed.
 
-## 5. Backend Deployment on Render
+## 5. Production Database on Supabase
 
-### PostgreSQL
+Supabase provides the managed PostgreSQL database while authentication and
+application APIs remain in Flask. This keeps the existing SQLAlchemy and
+Alembic architecture unchanged while separating database hosting from the
+Render web service.
 
-1. Create a Render PostgreSQL database.
-2. Keep the database and web service in the same region when possible.
-3. Copy its internal connection string into the web service's `DATABASE_URL`.
+### Direct Connection and Session Pooler
 
-### Web service
+| Connection | Host pattern | Use case |
+| --- | --- | --- |
+| Direct Connection | `db.PROJECT_REF.supabase.co:5432` | IPv6 environments or projects with the Supabase IPv4 add-on |
+| Session Pooler | `aws-0-REGION.pooler.supabase.com:5432` | Persistent application servers that need an IPv4-compatible endpoint |
+
+Supabase Direct Connection uses IPv6 by default. The Render service therefore
+uses the Session Pooler URL, which provides IPv4 compatibility and preserves
+session-style PostgreSQL behavior suitable for Gunicorn, SQLAlchemy, `psql`,
+and Alembic migrations.
+
+This deployment uses Session Pooler mode on port `5432`, not Transaction
+Pooler mode on port `6543`.
+
+### Configure the database
+
+1. Create a Supabase project and save its database password securely.
+2. Open **Connect** in the Supabase dashboard.
+3. Select and copy the **Session Pooler** connection string.
+4. Replace the password placeholder and set the complete URL as `DATABASE_URL`
+   on the Render Web Service.
+
+Expected format:
+
+```dotenv
+DATABASE_URL=postgresql://postgres.PROJECT_REF:DB_PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
+```
+
+Percent-encode special characters in the password when placing it inside a
+URL.
+
+Connect manually with the same Session Pooler URL:
+
+```bash
+psql "postgresql://postgres.PROJECT_REF:DB_PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres"
+```
+
+Apply the existing schema from the Render Shell after configuring
+`DATABASE_URL`:
+
+```bash
+pipenv run flask --app run:app db upgrade
+```
+
+## 6. Backend Deployment on Render
 
 Create a Render Web Service from the repository with:
 
@@ -173,7 +219,7 @@ supplies Gunicorn's bind configuration for the service port.
 
 Set these environment variables:
 
-- `DATABASE_URL`: Render PostgreSQL internal connection string
+- `DATABASE_URL`: Supabase Session Pooler connection string
 - `JWT_SECRET_KEY`: long, random production secret
 - `CORS_ORIGINS`: `https://expense-tracker-liart-three-87.vercel.app`
 - `FLASK_ENV=production` (optional because it is the default)
@@ -190,7 +236,7 @@ For the first deployment:
 Run the migration command again after deployments that contain new migration
 files.
 
-## 6. Frontend Deployment on Vercel
+## 7. Frontend Deployment on Vercel
 
 Import the same repository into Vercel and configure:
 
@@ -237,17 +283,18 @@ After Vercel assigns the frontend URL, set the Render service's
 use different origins; add them explicitly as comma-separated values only when
 they need API access.
 
-### Production deployment workflow
+## 8. Production Deployment Workflow
 
-1. Create the Render PostgreSQL database.
-2. Create the Render Web Service and configure its environment variables.
+1. Create the Supabase project and copy its Session Pooler URL.
+2. Create the Render Web Service and configure `DATABASE_URL`,
+   `JWT_SECRET_KEY`, and `CORS_ORIGINS`.
 3. Deploy the backend and apply Alembic migrations from the Render Shell.
 4. Verify the Render health endpoint.
 5. Deploy the Vercel frontend with `VITE_API_BASE_URL` pointing to Render.
 6. Set Render's `CORS_ORIGINS` to the final Vercel origin and redeploy it.
 7. Complete the smoke test below.
 
-## 7. Post-Deployment Smoke Test
+## 9. Post-Deployment Smoke Test
 
 1. Open
    `https://expense-tracker-api-8aad.onrender.com/api/health`; expect an `ok`
@@ -263,7 +310,7 @@ they need API access.
 9. Refresh `/register`, `/expenses`, `/expenses/new`, and an edit URL to verify
    SPA routing. Open `/login` and confirm it redirects to `/`.
 
-## 8. Troubleshooting
+## 10. Troubleshooting
 
 ### CORS errors
 
@@ -283,8 +330,9 @@ Confirm that `DATABASE_URL` points to the intended database.
 
 ### Database connection errors
 
-- Use Render's internal PostgreSQL connection string for the Render service.
-- Confirm the database is available and in the expected region.
+- Confirm Render uses the Supabase Session Pooler URL on port `5432`.
+- Verify the Supabase project is active and the database password is correct.
+- Percent-encode special characters in the password inside `DATABASE_URL`.
 - Check that local PostgreSQL is running and the local credentials are correct.
 
 ### Environment variable issues

@@ -606,7 +606,8 @@ All endpoints are prefixed with `/api`.
 
 ### Database
 
-* PostgreSQL database hosted on Render.
+* PostgreSQL database hosted on Supabase.
+* The Render backend connects through the Supabase Session Pooler.
 * Connected to the backend via environment variables.
 
 ### Environment Variables
