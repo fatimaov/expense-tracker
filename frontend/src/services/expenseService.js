@@ -13,6 +13,12 @@ function getExpenses() {
   })
 }
 
+function getExpense(id) {
+  return apiClient.get(`/expenses/${id}`, {
+    headers: getAuthorizationHeaders(),
+  })
+}
+
 function createExpense(expense) {
   return apiClient.post('/expenses', expense, {
     headers: getAuthorizationHeaders(),
@@ -33,6 +39,7 @@ function deleteExpense(id) {
 
 export const expenseService = {
   getExpenses,
+  getExpense,
   createExpense,
   updateExpense,
   deleteExpense,
