@@ -204,11 +204,19 @@ Add this production environment variable before building:
 VITE_API_BASE_URL=https://your-api.onrender.com/api
 ```
 
-To support React Router URLs on refresh, create `frontend/vercel.json` with:
+The repository includes `frontend/vercel.json` to support React Router URLs on
+refresh and direct access:
 
 ```json
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/login",
+      "destination": "/",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
@@ -217,6 +225,10 @@ To support React Router URLs on refresh, create `frontend/vercel.json` with:
   ]
 }
 ```
+
+The application uses `/` as its login route, so Vercel redirects `/login` to
+`/`. The rewrite then serves `index.html` for all application routes and lets
+React Router select the correct page in the browser.
 
 After Vercel assigns the frontend URL, set the Render service's
 `CORS_ORIGINS` to that exact origin and redeploy the backend. Preview deployments
@@ -233,7 +245,8 @@ they need API access.
 6. Delete the expense and verify it disappears.
 7. Log out and confirm protected pages return to login.
 8. Log in again and confirm saved expenses persist.
-9. Refresh `/expenses`, `/expenses/new`, and an edit URL to verify SPA routing.
+9. Refresh `/register`, `/expenses`, `/expenses/new`, and an edit URL to verify
+   SPA routing. Open `/login` and confirm it redirects to `/`.
 
 ## 8. Troubleshooting
 
@@ -268,5 +281,5 @@ Confirm that `DATABASE_URL` points to the intended database.
 
 ### React Router pages return 404 on refresh
 
-Add the SPA rewrite shown in the Vercel section as `frontend/vercel.json`, then
-redeploy the frontend.
+Confirm `frontend/vercel.json` is included in the deployment and that Vercel's
+Root Directory is `frontend`, then redeploy.
