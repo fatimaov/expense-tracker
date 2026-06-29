@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import ExpenseForm from '../components/ExpenseForm.jsx'
+import LoadingState from '../components/LoadingState.jsx'
 import { expenseService } from '../services/expenseService.js'
 
 function EditExpensePage() {
@@ -9,6 +10,7 @@ function EditExpensePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState('')
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const { id } = useParams()
   const navigate = useNavigate()
 
@@ -16,6 +18,9 @@ function EditExpensePage() {
     let isCurrent = true
 
     async function loadExpense() {
+      setIsLoading(true)
+      setError('')
+
       try {
         const response = await expenseService.getExpense(id)
 
@@ -43,7 +48,7 @@ function EditExpensePage() {
     return () => {
       isCurrent = false
     }
-  }, [id])
+  }, [id, loadAttempt])
 
   async function handleSubmit(updatedExpense) {
     setError('')
@@ -60,7 +65,7 @@ function EditExpensePage() {
 
   async function handleDelete() {
     const shouldDelete = window.confirm(
-      'Are you sure you want to delete this expense?',
+      `Delete “${expense.title}”? This action cannot be undone.`,
     )
 
     if (!shouldDelete) return
@@ -83,22 +88,28 @@ function EditExpensePage() {
     <main className="container py-4">
       <div className="row justify-content-center">
         <div className="col-12 col-md-8 col-lg-6">
-          <h1 className="mb-4">Edit Expense</h1>
+          <h1 className="mb-2">Edit Expense</h1>
+          <p className="text-secondary mb-4">
+            Update the details, save your changes, or delete this expense.
+          </p>
 
-          {isLoading && (
-            <div className="text-center py-5" role="status">
-              <div
-                className="spinner-border text-primary"
-                aria-hidden="true"
-              />
-              <p className="text-secondary mt-2 mb-0">Loading expense...</p>
-            </div>
-          )}
+          {isLoading && <LoadingState message="Loading expense..." />}
 
           {!isLoading && error && !expense && (
             <>
-              <div className="alert alert-danger" role="alert">
-                {error}
+              <div
+                className="alert alert-danger"
+                role="alert"
+                aria-live="polite"
+              >
+                <p className="mb-2">{error}</p>
+                <button
+                  className="btn btn-outline-danger btn-sm"
+                  type="button"
+                  onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+                >
+                  Try Again
+                </button>
               </div>
               <button
                 className="btn btn-outline-secondary"
@@ -113,7 +124,11 @@ function EditExpensePage() {
           {!isLoading && expense && (
             <>
               {error && (
-                <div className="alert alert-danger" role="alert">
+                <div
+                  className="alert alert-danger"
+                  role="alert"
+                  aria-live="polite"
+                >
                   {error}
                 </div>
               )}
@@ -122,12 +137,13 @@ function EditExpensePage() {
                 initialValues={expense}
                 onSubmit={handleSubmit}
                 onCancel={() => navigate('/expenses')}
-                submitLabel="Save Changes"
+                submitLabel="Save"
+                submittingLabel="Saving..."
                 isSubmitting={isBusy}
               />
 
               <button
-                className="btn btn-outline-danger mt-3"
+                className="btn btn-outline-danger mt-4"
                 type="button"
                 onClick={handleDelete}
                 disabled={isBusy}

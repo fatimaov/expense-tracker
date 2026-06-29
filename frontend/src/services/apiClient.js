@@ -12,14 +12,24 @@ export class ApiError extends Error {
 export async function request(endpoint, { method = 'GET', body, headers = {} } = {}) {
   const url = `${API_BASE_URL.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`
   const hasBody = body !== undefined
-  const response = await fetch(url, {
-    method,
-    headers: {
-      ...(hasBody && { 'Content-Type': 'application/json' }),
-      ...headers,
-    },
-    ...(hasBody && { body: JSON.stringify(body) }),
-  })
+  let response
+
+  try {
+    response = await fetch(url, {
+      method,
+      headers: {
+        ...(hasBody && { 'Content-Type': 'application/json' }),
+        ...headers,
+      },
+      ...(hasBody && { body: JSON.stringify(body) }),
+    })
+  } catch {
+    throw new ApiError(
+      'Unable to connect to the server. Check your connection and try again.',
+      0,
+      null,
+    )
+  }
 
   const data = response.status === 204 ? null : await response.json()
 

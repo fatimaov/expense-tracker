@@ -26,13 +26,16 @@ function RegisterPage() {
   }
 
   return (
-    <main className="container">
+    <main className="container py-4">
       <div className="row justify-content-center">
         <div className="col-12 col-sm-8 col-md-6 col-lg-4">
-          <h1 className="mb-4">Register</h1>
+          <h1 className="mb-2">Create Account</h1>
+          <p className="text-secondary mb-4">
+            Create an account to keep your expenses private.
+          </p>
 
           {error && (
-            <div className="alert alert-danger" role="alert">
+            <div className="alert alert-danger" role="alert" aria-live="polite">
               {error}
             </div>
           )}
@@ -49,23 +52,31 @@ function RegisterPage() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
+                disabled={isSubmitting}
+                autoFocus
                 required
               />
             </div>
 
             <div className="mb-3">
-              <label className="form-label" htmlFor="password">
+              <label className="form-label" htmlFor="register-password">
                 Password
               </label>
               <input
                 className="form-control"
-                id="password"
+                id="register-password"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="new-password"
+                aria-describedby="password-help"
+                minLength="8"
+                disabled={isSubmitting}
                 required
               />
+              <div className="form-text" id="password-help">
+                Use at least 8 characters.
+              </div>
             </div>
 
             <button

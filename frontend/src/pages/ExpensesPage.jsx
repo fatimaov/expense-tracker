@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import EmptyState from '../components/EmptyState.jsx'
 import ExpenseCard from '../components/ExpenseCard.jsx'
+import LoadingState from '../components/LoadingState.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { expenseService } from '../services/expenseService.js'
 
@@ -9,6 +10,7 @@ function ExpensesPage() {
   const [expenses, setExpenses] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const { logout } = useAuth()
   const navigate = useNavigate()
 
@@ -16,6 +18,9 @@ function ExpensesPage() {
     let isCurrent = true
 
     async function loadExpenses() {
+      setIsLoading(true)
+      setError('')
+
       try {
         const response = await expenseService.getExpenses()
 
@@ -39,7 +44,7 @@ function ExpensesPage() {
     return () => {
       isCurrent = false
     }
-  }, [])
+  }, [loadAttempt])
 
   function handleLogout() {
     logout()
@@ -50,7 +55,7 @@ function ExpensesPage() {
     <main className="container py-4">
       <div className="d-flex align-items-center justify-content-between gap-3 mb-4">
         <h1 className="mb-0">Expenses</h1>
-        <div className="d-flex gap-2">
+        <div className="d-flex flex-wrap justify-content-end gap-2">
           {!isLoading && !error && expenses.length > 0 && (
             <Link className="btn btn-primary" to="/expenses/new">
               Add Expense
@@ -66,16 +71,18 @@ function ExpensesPage() {
         </div>
       </div>
 
-      {isLoading && (
-        <div className="text-center py-5" role="status">
-          <div className="spinner-border text-primary" aria-hidden="true" />
-          <p className="text-secondary mt-2 mb-0">Loading expenses...</p>
-        </div>
-      )}
+      {isLoading && <LoadingState message="Loading expenses..." />}
 
       {!isLoading && error && (
-        <div className="alert alert-danger" role="alert">
-          {error}
+        <div className="alert alert-danger" role="alert" aria-live="polite">
+          <p className="mb-2">{error}</p>
+          <button
+            className="btn btn-outline-danger btn-sm"
+            type="button"
+            onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+          >
+            Try Again
+          </button>
         </div>
       )}
 

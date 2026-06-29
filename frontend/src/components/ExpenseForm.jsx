@@ -21,7 +21,8 @@ function ExpenseForm({
   initialValues = {},
   onSubmit,
   onCancel,
-  submitLabel = 'Save Expense',
+  submitLabel = 'Save',
+  submittingLabel = 'Saving...',
   isSubmitting = false,
 }) {
   const [formData, setFormData] = useState({
@@ -60,8 +61,11 @@ function ExpenseForm({
           min="0.01"
           step="0.01"
           inputMode="decimal"
+          placeholder="0.00"
           value={formData.amount}
           onChange={handleChange}
+          disabled={isSubmitting}
+          autoFocus
           required
         />
       </div>
@@ -75,8 +79,10 @@ function ExpenseForm({
           id="title"
           name="title"
           type="text"
+          placeholder="What did you spend on?"
           value={formData.title}
           onChange={handleChange}
+          disabled={isSubmitting}
           required
         />
       </div>
@@ -92,6 +98,7 @@ function ExpenseForm({
           type="date"
           value={formData.expense_date}
           onChange={handleChange}
+          disabled={isSubmitting}
           required
         />
       </div>
@@ -106,6 +113,7 @@ function ExpenseForm({
           name="category"
           value={formData.category}
           onChange={handleChange}
+          disabled={isSubmitting}
           required
         >
           <option value="" disabled>
@@ -128,8 +136,10 @@ function ExpenseForm({
           id="notes"
           name="notes"
           rows="3"
+          placeholder="Add any useful details"
           value={formData.notes}
           onChange={handleChange}
+          disabled={isSubmitting}
         />
       </div>
 
@@ -139,7 +149,7 @@ function ExpenseForm({
           type="submit"
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Saving...' : submitLabel}
+          {isSubmitting ? submittingLabel : submitLabel}
         </button>
         {onCancel && (
           <button

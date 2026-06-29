@@ -26,13 +26,16 @@ function LoginPage() {
   }
 
   return (
-    <main className="container">
+    <main className="container py-4">
       <div className="row justify-content-center">
         <div className="col-12 col-sm-8 col-md-6 col-lg-4">
-          <h1 className="mb-4">Login</h1>
+          <h1 className="mb-2">Login</h1>
+          <p className="text-secondary mb-4">
+            Sign in to view and manage your expenses.
+          </p>
 
           {error && (
-            <div className="alert alert-danger" role="alert">
+            <div className="alert alert-danger" role="alert" aria-live="polite">
               {error}
             </div>
           )}
@@ -49,6 +52,8 @@ function LoginPage() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
+                disabled={isSubmitting}
+                autoFocus
                 required
               />
             </div>
@@ -64,6 +69,7 @@ function LoginPage() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="current-password"
+                disabled={isSubmitting}
                 required
               />
             </div>
