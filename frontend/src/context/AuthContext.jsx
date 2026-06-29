@@ -54,7 +54,13 @@ export function AuthProvider({ children }) {
   const register = useCallback(
     async (credentials) => {
       const response = await authService.register(credentials)
-      return applyAuthResponse(response)
+
+      if (getResponseToken(response)) {
+        return applyAuthResponse(response)
+      }
+
+      const loginResponse = await authService.login(credentials)
+      return applyAuthResponse(loginResponse)
     },
     [applyAuthResponse],
   )
