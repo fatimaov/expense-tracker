@@ -31,7 +31,23 @@ export async function request(endpoint, { method = 'GET', body, headers = {} } =
     )
   }
 
-  const data = response.status === 204 ? null : await response.json()
+  let data = null
+
+  if (response.status !== 204) {
+    const responseText = await response.text()
+
+    if (responseText) {
+      try {
+        data = JSON.parse(responseText)
+      } catch {
+        throw new ApiError(
+          'The server returned an invalid response. Please try again.',
+          response.status,
+          null,
+        )
+      }
+    }
+  }
 
   if (!response.ok) {
     const message = data?.error?.message || data?.message || 'Request failed.'

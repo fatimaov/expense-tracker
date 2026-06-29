@@ -26,12 +26,11 @@ function ExpenseForm({
   isSubmitting = false,
 }) {
   const [formData, setFormData] = useState({
-    amount: '',
-    title: '',
-    expense_date: getToday(),
-    category: '',
-    notes: '',
-    ...initialValues,
+    amount: initialValues.amount ?? '',
+    title: initialValues.title ?? '',
+    expense_date: initialValues.expense_date ?? getToday(),
+    category: initialValues.category ?? '',
+    notes: initialValues.notes ?? '',
   })
 
   function handleChange(event) {

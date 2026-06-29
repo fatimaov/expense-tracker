@@ -25,8 +25,10 @@ function ExpensesPage() {
         const response = await expenseService.getExpenses()
 
         if (isCurrent) {
-          const sortedExpenses = [...(response.expenses ?? [])].sort((a, b) =>
-            b.expense_date.localeCompare(a.expense_date),
+          const sortedExpenses = [...(response.expenses ?? [])].sort(
+            (a, b) =>
+              b.expense_date.localeCompare(a.expense_date) ||
+              b.created_at.localeCompare(a.created_at),
           )
           setExpenses(sortedExpenses)
         }
