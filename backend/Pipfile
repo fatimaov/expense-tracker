@@ -12,9 +12,9 @@ flask-jwt-extended = "*"
 python-dotenv = "*"
 psycopg2-binary = "*"
 sqlalchemy = "*"
+gunicorn = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.13"
-
