@@ -11,6 +11,8 @@ per-user data, fixed expense categories, and complete expense CRUD workflows.
 - Frontend: [expense-tracker-liart-three-87.vercel.app](https://expense-tracker-liart-three-87.vercel.app/)
 - Backend health check: [expense-tracker-api-8aad.onrender.com/api/health](https://expense-tracker-api-8aad.onrender.com/api/health)
 
+Note: The Render free-tier hosting may take 30-60 seconds to wake up the backend on the first visit.
+
 ## Features
 
 - Email and password registration, login, and logout
