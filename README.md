@@ -13,6 +13,13 @@ per-user data, fixed expense categories, and complete expense CRUD workflows.
 
 Note: The Render free-tier hosting may take 30-60 seconds to wake up the backend on the first visit.
 
+### Demo Account
+
+Use this account to test the deployed app without creating a new user:
+
+- Email: `demo@email.com`
+- Password: `12345678`
+
 ## Features
 
 - Email and password registration, login, and logout
