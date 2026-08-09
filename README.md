@@ -1,84 +1,118 @@
 # Expense Tracker
 
-## Overview
+Expense Tracker is a full-stack personal expense tracker built as a live demo and a reusable starter project.
 
-Expense Tracker is a mobile-first full-stack application for securely recording
-and reviewing personal expenses. The MVP provides authentication, private
-per-user data, fixed expense categories, and complete expense CRUD workflows.
+You can explore the codebase, test the deployed app, or clone the repository and adapt it with your own database, environment variables, and deployment setup.
+
+## Features
+- User registration, login, and logout
+- Create, edit, and delete expenses
+- Track amount, title, date, category, and optional notes
+- View expenses ordered by newest first
+- User-specific expense data
+- Mobile-first responsive interface
 
 ## Live Demo
 
-- Frontend: [expense-tracker-liart-three-87.vercel.app](https://expense-tracker-liart-three-87.vercel.app/)
-- Backend health check: [expense-tracker-api-8aad.onrender.com/api/health](https://expense-tracker-api-8aad.onrender.com/api/health)
+* App: [expense-tracker-liart-three-87.vercel.app](https://expense-tracker-liart-three-87.vercel.app/)
+* Backend health check: [expense-tracker-api-8aad.onrender.com/api/health](https://expense-tracker-api-8aad.onrender.com/api/health)
 
-Note: The Render free-tier hosting may take 30-60 seconds to wake up the backend on the first visit.
+The backend runs on Render's free tier, so the first request may take 30–60 seconds.
 
 ### Demo Account
 
-Use this account to test the deployed app without creating a new user:
+* Email: `demo@email.com`
+* Password: `12345678`
 
-- Email: `demo@email.com`
-- Password: `12345678`
+## Project Purpose
 
-## Features
+This repository is public so you can:
 
-- Email and password registration, login, and logout
-- JWT-based authentication with protected frontend routes and API endpoints
-- Create, view, edit, and permanently delete expenses
-- Private expense data scoped to the authenticated user
-- Expenses ordered from newest to oldest
-- Fixed categories: Transport, Accommodation, Food, Activities, and Other
-- Optional notes, loading and error feedback, and an empty-state call to action
-- Responsive Bootstrap layout for mobile and desktop
+* Explore the implementation and test the live project.
+* Clone or fork it and use it as a base for your own expense tracker.
+* Follow future improvements and new versions of the project.
 
 ## Tech Stack
 
-- Frontend: React, Vite, React Router, Bootstrap
-- Backend: Flask, SQLAlchemy, Flask-Migrate/Alembic, Gunicorn
-- Database: Supabase PostgreSQL
-- Authentication: JSON Web Tokens
-- Hosting: Vercel, Render Web Service, Supabase
-- Dependency management: npm and Pipenv
+* **Frontend:** React, Vite, React Router, Bootstrap
+* **Backend:** Flask, SQLAlchemy, Flask-Migrate/Alembic, Gunicorn
+* **Database:** PostgreSQL
+* **Authentication:** JWT
+* **Deployment:** Vercel, Render, Supabase
+* **Package management:** npm, Pipenv
+
+## Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd expense-tracker
+```
+
+### 2. Install dependencies
+
+Backend:
+
+```bash
+cd backend
+pipenv install --deploy
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+```
+
+### 3. Configure environment variables
+
+Create local env files from the provided examples:
+
+```text
+backend/.env.example  →  backend/.env
+frontend/.env.example →  frontend/.env
+```
+
+See `docs/DEPLOYMENT.md` for additional configuration details.
+
+### 4. Set up PostgreSQL
+
+Create a PostgreSQL database and update the backend environment variables, then run:
+
+```bash
+cd backend
+pipenv run flask --app run:app db upgrade
+```
+
+### 5. Run the project
+
+Backend:
+
+```bash
+cd backend
+pipenv run python run.py
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Default local URLs:
+
+* Frontend: `http://localhost:5173`
+* Backend API: `http://localhost:5000/api`
 
 ## Project Structure
 
 ```text
-expense-tracker/
-├── backend/
-│   ├── app/              # Models, routes, services, serializers, and config
-│   ├── migrations/       # Alembic database migrations
-│   ├── Pipfile           # Python dependencies
-│   └── run.py            # Flask and Gunicorn entry point
-├── frontend/
-│   ├── src/              # Pages, components, context, services, and router
-│   └── vercel.json       # React Router SPA rewrites
-└── docs/                 # Product, API, roadmap, and deployment documentation
+frontend/   React application
+backend/    Flask API and database migrations
+docs/       Project, API, deployment, and development documentation
 ```
 
-## Deployment
-
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for local setup, environment
-variables, migrations, production deployment, and smoke testing.
-
-## Current Architecture
-
-```text
-Browser
-  -> Vercel (React + Vite frontend)
-  -> Render (Flask API served by Gunicorn)
-  -> Supabase PostgreSQL (Session Pooler)
-```
-
-## Current Status
-
-The MVP is deployed and functional in production. Registration, authentication,
-expense CRUD, data persistence, responsive layout, client-side routing, and
-hosting integration are working end to end.
-
-## Future Improvements
-
-- Tags for grouping expenses by trips or events
-- Spending analytics and reports
-- Budgets and spending limits
-- Bank or card transaction imports
-- Receipt scanning and assisted expense entry
+For more details, see the documentation in `docs/`.
