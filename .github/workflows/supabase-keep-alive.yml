@@ -25,5 +25,8 @@ jobs:
             note TEXT
           );
 
+          INSERT INTO keep_alive_logs (source, note)
+          VALUES ('github-actions', 'Schedule keep-alive ping');
+
           ROLLBACK;
           SQL
