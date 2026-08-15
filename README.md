@@ -1,63 +1,62 @@
 # Expense Tracker
 
-Expense Tracker is a full-stack personal expense tracker built as a live demo and a reusable starter project.
-
-You can explore the codebase, test the deployed app, or clone the repository and adapt it with your own database, environment variables, and deployment setup.
+Expense Tracker is a full-stack personal expense tracker and reusable starter project. Explore the code, try the live demo, or clone and adapt it with your own database, environment variables, and deployment setup.
 
 ## Features
-- User registration, login, and logout
+
+- Register, log in, and log out
 - Create, edit, and delete expenses
 - Track amount, title, date, category, and optional notes
-- View expenses ordered by newest first
-- User-specific expense data
-- Mobile-first responsive interface
+- View expenses from newest to oldest
+- Keep expense data separate for each user
+- Use a mobile-first responsive interface
 
 ## Live Demo
 
-* App: [expense-tracker-liart-three-87.vercel.app](https://expense-tracker-liart-three-87.vercel.app/)
-* Backend health check: [expense-tracker-api-8aad.onrender.com/api/health](https://expense-tracker-api-8aad.onrender.com/api/health)
+- App: [expense-tracker-liart-three-87.vercel.app](https://expense-tracker-liart-three-87.vercel.app/)
+- API health check: [expense-tracker-api-8aad.onrender.com/api/health](https://expense-tracker-api-8aad.onrender.com/api/health)
 
-The backend runs on Render's free tier, so the first request may take 30–60 seconds.
+The backend runs on Render's free tier, so its first request may take 30–60 seconds.
 
 ### Demo Account
 
-* Email: `demo@email.com`
-* Password: `12345678`
+- Email: `demo@email.com`
+- Password: `12345678`
 
 ### Public Demo Maintenance
 
-This repository includes the scheduled GitHub Actions workflow in `.github/workflows/demo-reset.yml`. It resets the public demo data to keep the shared demo environment clean and prevent unwanted data from being left in the demo account. The workflow:
+`.github/workflows/demo-reset.yml` resets the public demo data on a schedule to keep the shared environment clean and prevent real financial data from being stored.
 
-* Deletes all users except the demo account.
-* Relies on database cascade deletes to remove related expenses.
-* Restores the default demo expense records.
+The workflow:
 
-This is intentional because the project is a public demo environment and should not store real user financial data.
+- Deletes all users except the demo account
+- Uses database cascade deletes to remove related expenses
+- Restores the default demo expenses
 
-⚠️ **Important for contributors:** If you clone this repository and connect it to your own database, disable or remove this workflow unless you understand that it deletes user data. It is intended only for the public demo environment.
+⚠️ **Important for contributors:** If you connect this project to your own database, disable or remove this workflow unless you understand that it deletes user data. It is intended only for the public demo environment.
 
-### Supabase Free Tier Keep-Alive
+### Supabase Free-Tier Keep-Alive
 
-This repository also includes an optional GitHub Actions workflow in `.github/workflows/supabase-keep-alive.yml` for developers who clone the project and deploy their own Supabase database. Supabase Free Tier projects with no activity for several days may be paused, so the workflow provides a simple maintenance mechanism by connecting directly to Supabase and creating/inserting a maintenance record.
+`.github/workflows/supabase-keep-alive.yml` is an optional maintenance workflow for developers using their own Supabase database. Because inactive Supabase Free Tier projects may be paused after several days, the workflow connects to Supabase and creates a maintenance record.
 
-The workflow currently runs manually with `workflow_dispatch`. To enable automatic execution, uncomment the `schedule` section in the YAML file and configure the desired cron schedule. Review and adapt the workflow, including its database secret and schedule, to your deployment setup. It is not part of the application business logic; it is only an optional database maintenance helper.
+It currently runs only through `workflow_dispatch`. To run it automatically, uncomment the YAML `schedule` section and set the desired cron schedule. Review and adapt the workflow, database secret, and schedule for your deployment. This is a database maintenance helper, not application business logic.
 
 ## Project Purpose
 
-This repository is public so you can:
+This public repository lets you:
 
-* Explore the implementation and test the live project.
-* Clone or fork it and use it as a base for your own expense tracker.
-* Follow future improvements and new versions of the project.
+- Explore the implementation and test the live project
+- Clone or fork it as a starting point for your own expense tracker
+- Follow future improvements and releases
 
 ## Tech Stack
 
-* **Frontend:** React, Vite, React Router, Bootstrap
-* **Backend:** Flask, SQLAlchemy, Flask-Migrate/Alembic, Gunicorn
-* **Database:** PostgreSQL
-* **Authentication:** JWT
-* **Deployment:** Vercel, Render, Supabase
-* **Package management:** npm, Pipenv
+- **Frontend:** React, Vite, React Router, Bootstrap
+- **Backend:** Flask, SQLAlchemy, Flask-Migrate/Alembic, Gunicorn
+- **Database:** PostgreSQL
+- **Authentication:** JWT
+- **Deployment:** Vercel, Render, Supabase
+- **Package management:** npm, Pipenv
 
 ## Getting Started
 
@@ -86,7 +85,7 @@ npm install
 
 ### 3. Configure environment variables
 
-Create local env files from the provided examples:
+Copy the example files:
 
 ```text
 backend/.env.example  →  backend/.env
@@ -97,7 +96,7 @@ See `docs/DEPLOYMENT.md` for additional configuration details.
 
 ### 4. Set up PostgreSQL
 
-Create a PostgreSQL database and update the backend environment variables, then run:
+Create a PostgreSQL database, update the backend environment variables, and run:
 
 ```bash
 cd backend
@@ -122,8 +121,8 @@ npm run dev
 
 Default local URLs:
 
-* Frontend: `http://localhost:5173`
-* Backend API: `http://localhost:5000/api`
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:5000/api`
 
 ## Project Structure
 
@@ -133,4 +132,4 @@ backend/    Flask API and database migrations
 docs/       Project, API, deployment, and development documentation
 ```
 
-For more details, see the documentation in `docs/`.
+For more information, see the documentation in `docs/`.
