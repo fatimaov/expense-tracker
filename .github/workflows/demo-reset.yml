@@ -46,7 +46,7 @@ jobs:
               id,
               4.80,
               'Coffee & pastry',
-              '2026-08-09',
+              '2026-08-09'::date,
               'Food',
               'Breakfast at a café before work ☕'
           FROM users
@@ -58,7 +58,7 @@ jobs:
               id,
               18.50,
               'Train ticket',
-              '2026-08-09',
+              '2026-08-09'::date,
               'Transport',
               'Round trip to the city center'
           FROM users
@@ -70,7 +70,7 @@ jobs:
               id,
               32.00,
               'Museum tickets',
-              '2026-08-09',
+              '2026-08-09'::date,
               'Activities',
               'Weekend visit with a friend'
           FROM users
@@ -82,7 +82,7 @@ jobs:
               id,
               74.90,
               'Hotel night',
-              '2026-08-09',
+              '2026-08-09'::date,
               'Accommodation',
               'One-night stay during a short trip 🏨'
           FROM users
