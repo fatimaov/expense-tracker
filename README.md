@@ -24,6 +24,18 @@ The backend runs on Render's free tier, so the first request may take 30–60 se
 * Email: `demo@email.com`
 * Password: `12345678`
 
+### Public Demo Maintenance
+
+This repository includes the scheduled GitHub Actions workflow in `.github/workflows/demo-reset.yml`. It resets the public demo data to keep the shared demo environment clean and prevent unwanted data from being left in the demo account. The workflow:
+
+* Deletes all users except the demo account.
+* Relies on database cascade deletes to remove related expenses.
+* Restores the default demo expense records.
+
+This is intentional because the project is a public demo environment and should not store real user financial data.
+
+⚠️ **Important for contributors:** If you clone this repository and connect it to your own database, disable or remove this workflow unless you understand that it deletes user data. It is intended only for the public demo environment.
+
 ## Project Purpose
 
 This repository is public so you can:
