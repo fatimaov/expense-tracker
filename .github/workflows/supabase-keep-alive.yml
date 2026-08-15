@@ -1,0 +1,29 @@
+name: Supabase Keep Alive
+
+on:
+  # Allows manual execution from GitHub Actions
+  workflow_dispatch:
+
+  # Runs automatically every Tuesday and Friday at 08:00 UTC
+#   schedule:
+#     - cron: "0 8 * * 2,5"
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Insert keep-alive log
+        run: |
+          psql "${{ secrets.SUPABASE_DATABASE_URL }}" <<'SQL'
+          BEGIN;
+          
+          CREATE TABLE IF NOT EXISTS keep_alive_logs (
+            id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            source TEXT NOT NULL,
+            note TEXT
+          );
+
+          ROLLBACK;
+          SQL
