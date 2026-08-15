@@ -36,6 +36,12 @@ This is intentional because the project is a public demo environment and should 
 
 ⚠️ **Important for contributors:** If you clone this repository and connect it to your own database, disable or remove this workflow unless you understand that it deletes user data. It is intended only for the public demo environment.
 
+### Supabase Free Tier Keep-Alive
+
+This repository also includes an optional GitHub Actions workflow in `.github/workflows/supabase-keep-alive.yml` for developers who clone the project and deploy their own Supabase database. Supabase Free Tier projects with no activity for several days may be paused, so the workflow provides a simple maintenance mechanism by connecting directly to Supabase and creating/inserting a maintenance record.
+
+The workflow currently runs manually with `workflow_dispatch`. To enable automatic execution, uncomment the `schedule` section in the YAML file and configure the desired cron schedule. Review and adapt the workflow, including its database secret and schedule, to your deployment setup. It is not part of the application business logic; it is only an optional database maintenance helper.
+
 ## Project Purpose
 
 This repository is public so you can:
