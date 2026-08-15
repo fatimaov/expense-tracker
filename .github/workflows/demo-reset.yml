@@ -89,5 +89,5 @@ jobs:
           WHERE email = 'demo@email.com';
 
 
-          ROLLBACK;
+          COMMIT;
           SQL
