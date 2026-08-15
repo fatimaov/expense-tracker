@@ -1,0 +1,25 @@
+name: Demo Reset
+
+on:
+  # Allows manual execution from GitHub Actions
+  workflow_dispatch:
+
+  # Runs automatically every Monday at 08:00 UTC
+  schedule:
+    - cron: "0 8 * * 1"
+
+jobs:
+  reset-demo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Reset demo database
+        run: |
+          psql "${{ secrets.SUPABASE_DATABASE_URL }}" <<'SQL'
+          BEGIN;
+
+          DELETE FROM users
+          WHERE email != 'demo@email.com';
+
+          ROLLBACK;
+          SQL
