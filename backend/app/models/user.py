@@ -21,4 +21,4 @@ class User(db.Model):
         nullable=False,
     )
 
-    expenses: Mapped[list["Expense"]] = relationship(back_populates="user")
+    expenses: Mapped[list["Expense"]] = relationship(back_populates="user", cascade="all, delete-orphan")

@@ -17,7 +17,7 @@ class Expense(db.Model):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
