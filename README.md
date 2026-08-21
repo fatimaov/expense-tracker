@@ -37,9 +37,9 @@ The workflow:
 
 ### Supabase Free-Tier Keep-Alive
 
-`.github/workflows/supabase-keep-alive.yml` is an optional maintenance workflow for developers using their own Supabase database. Because inactive Supabase Free Tier projects may be paused after several days, the workflow connects to Supabase and creates a maintenance record.
+`.github/workflows/supabase-keep-alive.yml` is an optional maintenance workflow for developers using their own Supabase database. Because inactive Supabase Free Tier projects may be paused after several days, the workflow connects to Supabase with `psql`, creates the `keep_alive_logs` table if it does not already exist, and inserts a maintenance record.
 
-It currently runs only through `workflow_dispatch`. To run it automatically, uncomment the YAML `schedule` section and set the desired cron schedule. Review and adapt the workflow, database secret, and schedule for your deployment. This is a database maintenance helper, not application business logic.
+It can be started manually through `workflow_dispatch` and runs automatically every day at 08:00 and 19:00 UTC. The workflow requires a GitHub Actions secret named `SUPABASE_DATABASE_URL` containing the PostgreSQL connection string for your Supabase database. Review and adapt the workflow, database secret, and schedule for your deployment. This is a database maintenance helper, not application business logic.
 
 ## Project Purpose
 

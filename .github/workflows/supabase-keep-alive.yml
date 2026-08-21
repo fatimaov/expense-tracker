@@ -4,9 +4,9 @@ on:
   # Allows manual execution from GitHub Actions
   workflow_dispatch:
 
-  # Runs automatically every Tuesday and Friday at 08:00 UTC
-#   schedule:
-#     - cron: "0 8 * * 2,5"
+  # Runs automatically everyday at 08:00 and 19:00 UTC
+  schedule:
+    - cron: "0 8,19 * * *"
 
 jobs:
   keep-alive:
