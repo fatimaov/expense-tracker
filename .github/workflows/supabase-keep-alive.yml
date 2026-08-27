@@ -22,7 +22,8 @@ jobs:
             id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             source TEXT NOT NULL,
-            note TEXT
+            note TEXT,
+            notified_at TIMESTAMPTZ DEFAULT NULL
           );
 
           INSERT INTO keep_alive_logs (source, note)
