@@ -25,8 +25,8 @@
 
 # ENV VARS
 # SUPABASE_DATABASE_URL
-# GMAIL_ADDRESS
-# GMAIL_APP_PASSWORD
+# RESEND_API_KEY
+# EMAIL_FROM
 # EMAIL_TO
 # get_required_env()
 
@@ -89,8 +89,8 @@ def main():
     print("Starting Supabase keep-alive workflow...")
 
     database_url = get_required_env("SUPABASE_DATABASE_URL")
-    gmail_address = get_required_env("GMAIL_ADDRESS")
-    gmail_app_password = get_required_env("GMAIL_APP_PASSWORD")
+    resend_api_key = get_required_env("RESEND_API_KEY")
+    email_from = get_required_env("EMAIL_FROM")
     email_to = get_required_env("EMAIL_TO")
 
     print("Environment variables loaded successfully.")
