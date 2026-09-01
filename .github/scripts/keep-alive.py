@@ -38,5 +38,28 @@
 # EMAIL FUNCTIONS
 # send_confirmation_email()
 
+import os 
+
+# Get the environment variables
+def get_required_env(name):
+    value = os.getenv(name)
+
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+
+    return value
+
+def main():
+    print("Starting Supabase keep-alive workflow...")
+
+    database_url = get_required_env("SUPABASE_DATABASE_URL")
+    gmail_address = get_required_env("GMAIL_ADDRESS")
+    gmail_app_password = get_required_env("GMAIL_APP_PASSWORD")
+    email_to = get_required_env("EMAIL_TO")
+
+    print("Environment variables loaded successfully.")
+
+if __name__ == "__main__":
+    main()
 
 
