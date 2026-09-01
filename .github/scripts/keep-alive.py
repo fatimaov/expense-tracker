@@ -39,6 +39,7 @@
 # send_confirmation_email()
 
 import os 
+import psycopg
 
 # Get the environment variables
 def get_required_env(name):
@@ -49,6 +50,9 @@ def get_required_env(name):
 
     return value
 
+def connect_to_database(database_url):
+    return psycopg.connect(database_url)
+
 def main():
     print("Starting Supabase keep-alive workflow...")
 
@@ -58,6 +62,9 @@ def main():
     email_to = get_required_env("EMAIL_TO")
 
     print("Environment variables loaded successfully.")
+
+    with connect_to_database(database_url) as conn:
+        print("Database connection successful.")
 
 if __name__ == "__main__":
     main()
