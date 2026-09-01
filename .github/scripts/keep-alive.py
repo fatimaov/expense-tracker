@@ -40,6 +40,7 @@
 
 import os 
 import psycopg
+import requests
 
 # Get the environment variables
 def get_required_env(name):
@@ -85,6 +86,29 @@ def insert_keep_alive_log(conn):
     conn.commit()
     return log_id
 
+def send_confirmation_email(api_key, email_from, email_to, log_id):
+    response = requests.post(
+        "https://api.resend.com/emails",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-type": "application/json"
+        },
+        json={
+            "from": email_from,
+            "to": [email_to],
+            "subject": "Expense Tracker keep-alive successful",
+            "html": f"""
+                <p>The Supabase keep-alive workflow ran successfully.</p>
+                <p>Inserted log ID: {log_id}</p>
+            """,
+        },
+        timeout=10,
+    )
+
+    response.raise_for_status()
+
+    return response.json()
+
 def main():
     print("Starting Supabase keep-alive workflow...")
 
@@ -103,6 +127,17 @@ def main():
 
         log_id = insert_keep_alive_log(conn)
         print(f"Keep-alive log inserted successfully with id: {log_id}")
+
+        try:
+            email_response = send_confirmation_email(
+                resend_api_key, 
+                email_from, 
+                email_to, 
+                log_id
+            )
+            print(f"Confirmation email sent successfully: {email_response}")
+        except requests.RequestException as error:
+            print(f"Confirmation email failed: {error}")
 
 if __name__ == "__main__":
     main()
