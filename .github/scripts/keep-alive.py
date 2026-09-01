@@ -19,25 +19,6 @@
 #     log the error
 #     leave notified_at as NULL
 
-# psycopg → database
-# os → read secrets/env vars
-# smtplib/email.message → send email
-
-# ENV VARS
-# SUPABASE_DATABASE_URL
-# RESEND_API_KEY
-# EMAIL_FROM
-# EMAIL_TO
-# get_required_env()
-
-#  DATABASE FUNCTIONS
-# create_keep_alive_table(connection)
-# insert_keep_alive_log(connection)
-# mark_log_as_notified(connection, log_id)
-
-# EMAIL FUNCTIONS
-# send_confirmation_email()
-
 import os 
 import psycopg
 import requests
@@ -152,7 +133,7 @@ def main():
 
             mark_log_as_notified(conn, log_id)
             print(f"Keep-alive log {log_id} marked as notified.")
-            
+
         except requests.RequestException as error:
             print(f"Confirmation email failed: {error}")
 
