@@ -69,6 +69,22 @@ def create_keep_alive_table(conn):
 
     conn.commit()
 
+def insert_keep_alive_log(conn):
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO keep_alive_logs (source, note)
+            VALUES (%s, %s)
+            RETURNING id;
+            """,
+            ("github-actions", "Scheduled keep-alive ping"),
+        )
+
+        log_id = cur.fetchone()[0]
+
+    conn.commit()
+    return log_id
+
 def main():
     print("Starting Supabase keep-alive workflow...")
 
@@ -84,6 +100,9 @@ def main():
 
         create_keep_alive_table(conn)
         print("keep_alive_logs table is ready.")
+
+        log_id = insert_keep_alive_log(conn)
+        print(f"Keep-alive log inserted successfully with id: {log_id}")
 
 if __name__ == "__main__":
     main()
