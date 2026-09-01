@@ -37,9 +37,11 @@ The workflow:
 
 ### Supabase Free-Tier Keep-Alive
 
-`.github/workflows/supabase-keep-alive.yml` is an optional maintenance workflow for developers using their own Supabase database. Because inactive Supabase Free Tier projects may be paused after several days, the workflow connects to Supabase with `psql`, creates the `keep_alive_logs` table if it does not already exist, and inserts a maintenance record.
+`.github/workflows/supabase-keep-alive.yml` is an optional maintenance workflow for developers using their own Supabase database. It can be run manually or on a schedule. The workflow installs dependencies from `.github/scripts/requirements.txt` and runs `.github/scripts/keep-alive.py`.
 
-It can be started manually through `workflow_dispatch` and runs automatically every day at 08:00 and 19:00 UTC. The workflow requires a GitHub Actions secret named `SUPABASE_DATABASE_URL` containing the PostgreSQL connection string for your Supabase database. Review and adapt the workflow, database secret, and schedule for your deployment. This is a database maintenance helper, not application business logic.
+The script creates `keep_alive_logs` if needed, inserts a keep-alive record, and sends a confirmation email through [Resend](https://resend.com). It updates `notified_at` only when the email is sent successfully; if sending fails, `notified_at` remains `NULL`.
+
+Add these GitHub Actions secrets before using the workflow: `SUPABASE_DATABASE_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, and `EMAIL_TO`. This is maintenance and infrastructure logic, not core application logic.
 
 ## Project Purpose
 
