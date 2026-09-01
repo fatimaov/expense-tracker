@@ -53,6 +53,22 @@ def get_required_env(name):
 def connect_to_database(database_url):
     return psycopg.connect(database_url)
 
+def create_keep_alive_table(conn):
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS keep_alive_logs (
+                id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                source TEXT NOT NULL,
+                note TEXT,
+                notified_at TIMESTAMPTZ DEFAULT NULL
+            );
+            """
+        )
+
+    conn.commit()
+
 def main():
     print("Starting Supabase keep-alive workflow...")
 
@@ -65,6 +81,9 @@ def main():
 
     with connect_to_database(database_url) as conn:
         print("Database connection successful.")
+
+        create_keep_alive_table(conn)
+        print("keep_alive_logs table is ready.")
 
 if __name__ == "__main__":
     main()
