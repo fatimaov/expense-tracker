@@ -109,6 +109,19 @@ def send_confirmation_email(api_key, email_from, email_to, log_id):
 
     return response.json()
 
+def mark_log_as_notified(conn, log_id):
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE keep_alive_logs
+            SET notified_at = NOW()
+            WHERE id = %s;
+            """,
+            (log_id,),
+        )
+
+    conn.commit()
+
 def main():
     print("Starting Supabase keep-alive workflow...")
 
@@ -136,6 +149,10 @@ def main():
                 log_id
             )
             print(f"Confirmation email sent successfully: {email_response}")
+
+            mark_log_as_notified(conn, log_id)
+            print(f"Keep-alive log {log_id} marked as notified.")
+            
         except requests.RequestException as error:
             print(f"Confirmation email failed: {error}")
 
