@@ -25,7 +25,7 @@ The backend runs on Render's free tier, so its first request may take 30–60 se
 
 ### Public Demo Maintenance
 
-`.github/workflows/demo-reset.yml` resets the public demo data on a schedule to keep the shared environment clean and prevent real financial data from being stored.
+`.github/workflows/demo-reset.yml` resets the public demo database every week. It runs `.github/scripts/demo_reset.py` using dependencies from `.github/scripts/requirements.txt`.
 
 The workflow:
 
@@ -35,13 +35,13 @@ The workflow:
 
 ⚠️ **Important for contributors:** If you connect this project to your own database, disable or remove this workflow unless you understand that it deletes user data. It is intended only for the public demo environment.
 
-### Supabase Free-Tier Keep-Alive
+### Supabase Free-Tier Maintenance
 
-`.github/workflows/supabase-keep-alive.yml` is an optional maintenance workflow for developers using their own Supabase database. It can be run manually or on a schedule. The workflow installs dependencies from `.github/scripts/requirements.txt` and runs `.github/scripts/keep-alive.py`.
+The optional `.github/workflows/supabase-keep-alive.yml` workflow is for personal Supabase databases. It runs twice daily and uses `.github/scripts/keep_alive.py` to create `keep_alive_logs` if needed, add a keep-alive record, and send a confirmation email through [Resend](https://resend.com). It uses dependencies from `.github/scripts/requirements.txt`.
 
-The script creates `keep_alive_logs` if needed, inserts a keep-alive record, and sends a confirmation email through [Resend](https://resend.com). It updates `notified_at` only when the email is sent successfully; if sending fails, `notified_at` remains `NULL`.
+`.github/workflows/keep-alive-cleanup.yml` runs monthly and uses `.github/scripts/keep_alive_cleanup.py` to delete keep-alive logs and send a confirmation email. Use `DRY_RUN=false` for normal cleanup and `true` when testing or adjusting the script.
 
-Add these GitHub Actions secrets before using the workflow: `SUPABASE_DATABASE_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, and `EMAIL_TO`. This is maintenance and infrastructure logic, not core application logic.
+Required GitHub Actions secrets are `SUPABASE_DATABASE_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, and `EMAIL_TO`; the cleanup workflow also requires `DRY_RUN`.
 
 ## Project Purpose
 
