@@ -1,0 +1,33 @@
+name: Supabase Keep Alive Cleanup
+
+on:
+  # Allows manual execution from GitHub Actions
+  workflow_dispatch:
+
+  # Runs automatically every Monday at 08:00 UTC
+  schedule:
+    - cron: "0 9 1 * *"
+
+jobs:
+  demo-reset:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install script dependencies
+        run: pip install -r .github/scripts/requirements.txt
+
+      - name: Run keep-alive-cleanup script
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python .github/scripts/keep_alive_cleanup.py
