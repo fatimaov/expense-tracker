@@ -1,4 +1,5 @@
 import requests
+import os
 
 from utils import get_required_env, connect_to_database, send_confirmation_email
 
@@ -22,7 +23,7 @@ def main():
     resend_api_key = get_required_env("RESEND_API_KEY")
     email_from = get_required_env("EMAIL_FROM")
     email_to = get_required_env("EMAIL_TO")
-    dry_run = get_required_env("DRY_RUN")
+    dry_run = os.getenv("DRY_RUN", "true").lower() == "true"
 
     print("Environment variables loaded successfully.")
 
