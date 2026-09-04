@@ -15,7 +15,7 @@ def connect_to_database(database_url):
 
 def send_confirmation_email(api_key, email_from, email_to, subject, message):
     response = requests.post(
-        "https://api.resend.com/emais",
+        "https://api.resend.com/emails",
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-type": "application/json"

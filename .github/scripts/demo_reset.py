@@ -140,6 +140,30 @@ def main():
         create_demo_expenses(conn)
         print("Demo user expenses created sucessfully.")
 
+        try:
+            subject="Expense Tracker demo reset completed"
+            message="""
+                <p>The Expense Tracker demo reset workflow ran successfully.</p>
+                <p>The demo data has been refreshed:</p>
+                <ul>
+                    <li>Non-demo users were removed.</li>
+                    <li>Demo expenses were cleared.</li>
+                    <li>Fresh demo expenses were created.</li>
+                </ul>
+            """
+
+            email_response = send_confirmation_email(
+                resend_api_key, 
+                email_from, 
+                email_to, 
+                subject,
+                message
+            )
+            print(f"Confirmation email sent successfully: {email_response}")
+        
+        except requests.RequestException as error:
+            print(f"Confirmation email failed: {error}")
+
 
 
 if __name__ == "__main__":
