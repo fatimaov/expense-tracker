@@ -9,85 +9,25 @@ on:
     - cron: "0 8 * * 1"
 
 jobs:
-  reset-demo:
+  demo-reset:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Reset demo database
-        run: |
-          psql "${{ secrets.SUPABASE_DATABASE_URL }}" <<'SQL'
-          BEGIN;
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-          -- Delete all users except the public demo account.
-          -- Database cascade removes their related expenses.
-          DELETE FROM users
-          WHERE email != 'demo@email.com';
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
 
+      - name: Install script dependencies
+        run: pip install -r .github/scripts/requirements.txt
 
-          -- Remove current demo expenses
-          DELETE FROM expenses
-          WHERE user_id = (
-              SELECT id
-              FROM users
-              WHERE email = 'demo@email.com'
-          );
-
-
-          -- Restore default demo expenses
-          INSERT INTO expenses (
-              user_id,
-              amount,
-              title,
-              expense_date,
-              category,
-              notes
-          )
-          SELECT
-              id,
-              4.80,
-              'Coffee & pastry',
-              '2026-08-09'::date,
-              'Food'::expense_category,
-              'Breakfast at a café before work ☕'
-          FROM users
-          WHERE email = 'demo@email.com'
-
-          UNION ALL
-
-          SELECT
-              id,
-              18.50,
-              'Train ticket',
-              '2026-08-09'::date,
-              'Transport'::expense_category,
-              'Round trip to the city center'
-          FROM users
-          WHERE email = 'demo@email.com'
-
-          UNION ALL
-
-          SELECT
-              id,
-              32.00,
-              'Museum tickets',
-              '2026-08-09'::date,
-              'Activities'::expense_category,
-              'Weekend visit with a friend'
-          FROM users
-          WHERE email = 'demo@email.com'
-
-          UNION ALL
-
-          SELECT
-              id,
-              74.90,
-              'Hotel night',
-              '2026-08-09'::date,
-              'Accommodation'::expense_category,
-              'One-night stay during a short trip 🏨'
-          FROM users
-          WHERE email = 'demo@email.com';
-
-
-          COMMIT;
-          SQL
+      - name: Run demo-reset script
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python .github/scripts/demo_reset.py
