@@ -19,21 +19,9 @@
 #     log the error
 #     leave notified_at as NULL
 
-import os 
-import psycopg
 import requests
 
-# Get the environment variables
-def get_required_env(name):
-    value = os.getenv(name)
-
-    if not value:
-        raise RuntimeError(f"Missing required environment variable: {name}")
-
-    return value
-
-def connect_to_database(database_url):
-    return psycopg.connect(database_url)
+from utils import get_required_env, connect_to_database, send_confirmation_email
 
 def create_keep_alive_table(conn):
     with conn.cursor() as cur:
@@ -67,28 +55,6 @@ def insert_keep_alive_log(conn):
     conn.commit()
     return log_id
 
-def send_confirmation_email(api_key, email_from, email_to, log_id):
-    response = requests.post(
-        "https://api.resend.com/emails",
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-type": "application/json"
-        },
-        json={
-            "from": email_from,
-            "to": [email_to],
-            "subject": "Expense Tracker keep-alive successful",
-            "html": f"""
-                <p>The Supabase keep-alive workflow ran successfully.</p>
-                <p>Inserted log ID: {log_id}</p>
-            """,
-        },
-        timeout=10,
-    )
-
-    response.raise_for_status()
-
-    return response.json()
 
 def mark_log_as_notified(conn, log_id):
     with conn.cursor() as cur:
@@ -123,11 +89,18 @@ def main():
         print(f"Keep-alive log inserted successfully with id: {log_id}")
 
         try:
+            subject="Expense Tracker keep-alive successful"
+            message=f"""
+                <p>The Supabase keep-alive workflow ran successfully.</p>
+                <p>Inserted log ID: {log_id}</p>
+            """
+
             email_response = send_confirmation_email(
                 resend_api_key, 
                 email_from, 
                 email_to, 
-                log_id
+                subject,
+                message
             )
             print(f"Confirmation email sent successfully: {email_response}")
 
