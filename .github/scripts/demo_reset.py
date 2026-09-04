@@ -35,6 +35,21 @@ def delete_non_demo_users(conn):
         )
     conn.commit()
 
+def clear_demo_expenses(conn):
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            DELETE FROM expenses
+            WHERE user_id = (
+              SELECT id
+              FROM users
+              WHERE email = %s
+            );
+            """,
+            (demo_email,),
+        )
+    conn.commit()
+
 
 def main():
     print("Starting demo-reset workflow...")
@@ -50,7 +65,11 @@ def main():
         print("Database connection successful.")
 
         delete_non_demo_users(conn)
-        print("All users except demo@email.com deleted successfully")
+        print("All users except demo@email.com deleted successfully.")
+
+        clear_demo_expenses(conn)
+        print("Demo user expenses deleted successfully.")
+        
 
 
 if __name__ == "__main__":
