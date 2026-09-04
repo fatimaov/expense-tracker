@@ -50,6 +50,73 @@ def clear_demo_expenses(conn):
         )
     conn.commit()
 
+def create_demo_expenses(conn):
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            WITH demo_user AS (
+                SELECT id
+                FROM users
+                WHERE email = %s
+            )
+            INSERT INTO expenses (
+                user_id,
+                amount,
+                title,
+                expense_date,
+                category,
+                notes
+            )
+            SELECT
+                demo_user.id,
+                demo_expenses.amount,
+                demo_expenses.title,
+                demo_expenses.expense_date,
+                demo_expenses.category,
+                demo_expenses.notes
+            FROM demo_user
+            CROSS JOIN (
+                VALUES
+                    (
+                        4.80,
+                        'Coffee & pastry',
+                        '2026-08-09'::date,
+                        'Food'::expense_category,
+                        'Breakfast at a café before work ☕'
+                    ),
+                    (
+                        18.50,
+                        'Train ticket',
+                        '2026-08-09'::date,
+                        'Transport'::expense_category,
+                        'Round trip to the city center'
+                    ),
+                    (
+                        32.00,
+                        'Museum tickets',
+                        '2026-08-09'::date,
+                        'Activities'::expense_category,
+                        'Weekend visit with a friend'
+                    ),
+                    (
+                        74.90,
+                        'Hotel night',
+                        '2026-08-09'::date,
+                        'Accommodation'::expense_category,
+                        'One-night stay during a short trip 🏨'
+                    )
+            ) AS demo_expenses (
+                amount,
+                title,
+                expense_date,
+                category,
+                notes
+            );
+            """,
+            (demo_email,),
+        )
+    conn.commit()
+
 
 def main():
     print("Starting demo-reset workflow...")
@@ -69,7 +136,10 @@ def main():
 
         clear_demo_expenses(conn)
         print("Demo user expenses deleted successfully.")
-        
+
+        create_demo_expenses(conn)
+        print("Demo user expenses created sucessfully.")
+
 
 
 if __name__ == "__main__":
