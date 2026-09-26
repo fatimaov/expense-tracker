@@ -2,54 +2,62 @@
 
 ## Purpose
 
-Expense Tracker is a private personal finance-awareness tool. It helps people record their income and expenses, understand how they use their money, and make more conscious financial decisions.
+Expense Tracker is a private personal finance-awareness tool. It helps people record income and expenses, understand their spending, and build a habit of saving money.
 
-The app is intended for individuals who want to take more responsibility for their spending habits. It is not designed to automate financial decisions or replace the user's judgment. Recording and confirming a transaction is part of the value: each entry gives the user a clearer view of how much money they have available and how their choices affect it.
+The app is designed for users who want to stay aware of their expenses and make better decisions with the money they have available. Adding an expense should be quick, but the user should still review and confirm it.
 
-## Vision
+## How it works
 
-The long-term vision is to help users build a consistent habit of checking in with their finances. Expense Tracker should make it easy to record transactions while keeping the user's financial situation visible and understandable.
+The application works with calendar months. It knows the current date and automatically shows the current month.
 
-The app should help users answer practical questions such as:
+Income and expenses belong to the month of their date. A month can start with no income, so the money left to spend starts at €0. The user can add income during the month, including an income record titled “Manual amount” when they want to record money without a traditional source.
 
-- How much money do I have available for the rest of this period?
-- Where is my money going?
-- How much am I spending on each category?
-- How much did a trip, event, or other activity cost?
-- How much can I set aside for savings?
-- Am I staying within the limits I set for myself?
-
-## Product direction
-
-The product will gradually develop from a simple expense log into a personal cash-flow and financial-awareness tool.
-
-Users should be able to record both income and expenses, including recurring items such as salary, rent, subscriptions, or other regular payments. They should also be able to define a savings target as a fixed amount or percentage of their income.
-
-A user's financial position for a period can then be understood through a simple calculation:
+The current month's money left to spend is calculated as:
 
 ```text
-Income - savings allocation - recurring commitments - recorded expenses = available balance
+Income
++ money moved from the savings reserve
+- savings goal
+- regular payments
+- expenses
+= money left to spend
 ```
 
-The app should show this calculation clearly rather than hide it behind automation. The available balance should be updated as the user confirms new transactions, giving them an ongoing reason to stay aware of their spending.
+The dashboard shows the current month, money left to spend, savings goal, monthly result, savings reserve, regular payments, income, and recent expenses.
 
-To reduce the effort required to record an expense, the app may support assisted input such as natural-language text, receipt uploads, and voice recordings. These features can help prepare the expense details, but the user must always review and confirm the information before it is saved.
+## Saving money
 
-As more structured data is collected, the app can provide useful summaries and analytics by period, category, and tag. Tags can group expenses belonging to trips, events, projects, or other personal contexts. Future features may include budgets, recurring expense generation, savings goals, and optional AI-generated interpretations of spending patterns.
+The main direction of the product is to help users save money and build better financial habits.
 
-## Long-term goal
+The user can set a monthly savings goal as an amount or a percentage of income. Money left unspent can increase the monthly result, while overspending reduces it.
 
-The long-term goal is to help users improve their financial awareness, control their spending, and save money through consistent small decisions. The app should make financial information easier to understand without becoming a complex accounting system or a source of financial advice.
+The savings reserve represents the user's accumulated savings progress. It updates as the user adds income and expenses, and it can be viewed as a total or by month. It is separate from the money left to spend and is not used automatically.
 
-Expense Tracker is intentionally not intended to be:
+Over time, the reserve can support goals such as a trip, a car, a phone, or an emergency fund.
 
-- A company finance or accounting system.
-- A bank-connected transaction tracker.
-- An investment or tax management tool.
-- A shared household finance platform.
-- A system that makes financial decisions on the user's behalf.
+## Income and regular payments
 
-The user remains in control of their data and confirms the financial records created by the app.
+Users can record different kinds of income, such as salary, freelance work, or a manual amount. They can also register regular payments such as rent, subscriptions, and memberships, including their amount, frequency, payment day, and start date.
+
+The application includes regular payments in the months where they are due. These payments are shown separately from expenses already recorded. Users can correct past transactions, and the affected monthly results and savings reserve are recalculated.
+
+## Assisted expense entry
+
+The manual form remains available for every expense. The app may also help prepare an expense through:
+
+- Natural-language text.
+- Receipt uploads.
+- Voice recordings.
+
+These methods create an expense draft. The user reviews and confirms the information before it is saved.
+
+## Analytics and future direction
+
+Users can review income, expenses, savings, categories, and tags by month. Tags can group expenses by context, such as a trip or event, and show how much that group cost.
+
+Future features may include budgets for tags or categories, savings goals, and optional AI-generated explanations of spending patterns.
+
+Expense Tracker is not intended to be a company finance system, accounting platform, investment tool, bank-connected service, or source of professional financial advice. The user remains in control of their data and financial decisions.
 
 ## Current MVP
 
