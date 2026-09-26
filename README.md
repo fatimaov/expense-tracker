@@ -94,7 +94,7 @@ backend/.env.example  →  backend/.env
 frontend/.env.example →  frontend/.env
 ```
 
-See `docs/DEPLOYMENT.md` for additional configuration details.
+See `docs/MVP/DEPLOYMENT.md` for additional configuration details.
 
 ### 4. Set up PostgreSQL
 
