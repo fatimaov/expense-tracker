@@ -16,7 +16,6 @@ The current month's money left to spend is calculated as:
 
 ```text
 Income
-+ money moved from the savings reserve
 - savings goal
 - regular payments
 - expenses
@@ -31,7 +30,7 @@ The main direction of the product is to help users save money and build better f
 
 The user can set a monthly savings goal as an amount or a percentage of income. Money left unspent can increase the monthly result, while overspending reduces it.
 
-The savings reserve represents the user's accumulated savings progress. It updates as the user adds income and expenses, and it can be viewed as a total or by month. It is separate from the money left to spend and is not used automatically.
+The savings reserve represents the user's accumulated savings progress. It updates as the user adds income and expenses, and it can be viewed as a total or by month. It is separate from the money left to spend and cannot be used for ordinary spending in V2. A monthly deficit reduces the reserve instead.
 
 Over time, the reserve can support goals such as a trip, a car, a phone, or an emergency fund.
 

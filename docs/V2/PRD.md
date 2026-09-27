@@ -16,10 +16,11 @@ The app is not a bank account, accounting system, investment tool, or source of 
 | **Income** | Money recorded for a month, such as salary, freelance pay, or a manual amount. |
 | **Expense** | Money the user has spent. |
 | **Regular payment** | A repeated payment, such as rent, a subscription, or a membership. |
-| **Savings goal** | The amount or percentage the user wants to set aside during a month. |
+| **Savings goal** | The amount or percentage the user would like to set aside during a month. |
+| **Reserved savings** | The amount currently protected from spending for the month. |
 | **Money left to spend** | The amount available for the rest of the current month. |
 | **Monthly result** | The amount the month adds to, or takes from, the savings reserve. |
-| **Savings reserve** | The accumulated savings result from past and current months. |
+| **Projected savings reserve** | The accumulated savings result from past and the current month while it is still active. |
 | **Category** | What an expense was for, such as Food or Transport. |
 | **Tag** | A label that groups expenses by context, such as a trip or event. |
 | **Expense draft** | An expense prepared for the user to check before saving. |
@@ -41,46 +42,54 @@ Custom period start days are outside the initial V2 scope.
 
 ## Money left to spend
 
-The current month's money left to spend is calculated as:
+The current month's money is calculated in three steps:
 
 ```text
-Income recorded for the month
-+ money moved from the savings reserve
-- savings goal
-- regular payments due in the month
-- recorded expenses
-= money left to spend
+Net monthly money = income - regular payments - expenses
+Reserved savings = active savings goal, up to the amount that can be saved
+Money left to spend = net monthly money - reserved savings
 ```
+
+In precise terms:
+
+```text
+Reserved savings = minimum(active savings goal, maximum(net monthly money, 0))
+```
+
+The savings goal is active by default, but the user can turn it off or change it for the current month. If the user has €100 available and the goal is €150, only €100 can be reserved. The savings goal cannot create money or make the reserved amount larger than the amount the month can save.
 
 Income added during the month increases that month's money left to spend immediately. A user who wants to record money without a traditional source can create an income record with a title such as “Manual amount.”
 
-Money from the savings reserve is never used automatically. The user must explicitly move it into the current month.
-
-The current month's money left to spend and the savings reserve are shown separately. The reserve is not automatically added to the current month's spending money.
+The savings reserve cannot be used to increase the current month's money left to spend in V2. It is protected from ordinary spending. The current month's money left to spend and the savings reserve are always shown separately.
 
 ## Savings reserve
 
 The savings reserve represents the user's accumulated savings progress. It is not a bank balance.
 
-The savings goal is money reserved from the month, not an expense. It is excluded from the money left to spend during the month. The user can see the goal, but ordinary expenses should not use it by default.
+The savings goal is money reserved from the month, not an expense. It is excluded from the money left to spend while it is active. The user can see the goal and change it for the current month.
 
-The monthly result is based on the month's income, regular payments, and expenses. If the user stays within the money available for ordinary spending, the savings goal remains protected and is added to the savings reserve. If the user overspends, the overspending reduces or consumes part of the savings goal. A larger deficit can also reduce the existing savings reserve.
+The monthly result is based on the month's income, regular payments, and expenses. Planned savings and money left unspent increase the result. Overspending reduces the result and can reduce or consume the reserved savings. A larger deficit can also reduce the existing savings reserve.
 
 For example:
 
 ```text
 Savings goal: €300
+Reserved savings: €300
 Money left at the end of the month: €200
 Monthly savings result: €500
 ```
 
-If the month ends €100 over budget, that deficit reduces the monthly result. The savings reserve updates while the month is active and becomes final when the month closes.
+If the month can only save €100, the reserved savings becomes €100 even if the goal is €300. If the user turns the goal off, reserved savings becomes €0 and the same amount remains available to spend. The total monthly result does not change; only the split between reserved and spendable money changes.
+
+If net monthly money reaches €0 or becomes negative, reserved savings becomes €0. The money left to spend can then show a negative amount. Additional expenses make the monthly result more negative, while new income reduces the deficit. The projected savings reserve can also become negative when accumulated monthly deficits are greater than previous savings. It returns toward zero when later months produce positive results.
+
+The savings reserve updates while the month is active as a projected value and becomes final when the month closes. The reserve is not available for ordinary spending. If the current month has a deficit, that deficit reduces the savings reserve instead.
 
 The user can view:
 
 - The current month's money left to spend.
-- The current month's savings result.
-- The total savings reserve.
+- The current month's savings goal and reserved savings.
+- The projected savings reserve.
 - Monthly savings results over time.
 
 The reserve can be filtered by a range of months. Future versions may allow users to divide the reserve into savings goals such as a trip, car, phone, or emergency fund.
@@ -147,7 +156,7 @@ The app should provide summaries for:
 - Spending by tag.
 - The expenses behind each total.
 
-A future version may allow a tag, such as a trip, to have its own budget. That budget could be funded by monthly money or the savings reserve, but this is not required for the initial V2 scope.
+A future version may allow a tag, such as a trip, to have its own budget. That budget could be funded by monthly money, but this is not required for the initial V2 scope.
 
 ## Main application areas
 
@@ -176,7 +185,7 @@ V2 requires at least three meaningful models. The expected models are:
 - `RecurringItem`: a regular income or payment rule.
 - `Tag`: a user-owned expense label.
 - `SavingsGoal` or `Budget`: a future way to plan money for a purpose or category.
-- `ReserveEntry`: a monthly result or a move to or from the savings reserve.
+- `ReserveEntry`: a monthly result or deficit added to the savings reserve.
 
 Analytics should be calculated from transaction data rather than stored as duplicated totals.
 
@@ -195,10 +204,10 @@ V2 is successful when:
 
 - The application automatically identifies the current calendar month.
 - Users can record income and expenses for that month.
-- Users can set a savings goal and understand their money left to spend.
+- Users can set, disable, or adjust a monthly savings goal and understand their money left to spend.
 - Users can register regular payments with a frequency and start date.
 - Users can add an expense manually or through at least one assisted entry method.
 - Assisted expenses require review and confirmation.
-- The monthly result and savings reserve update as transactions change.
+- The monthly result and projected savings reserve update as transactions change.
 - Users can review savings and spending by month, category, and tag.
 - The existing MVP expense-tracking behavior remains available and stable.
