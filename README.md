@@ -1,15 +1,24 @@
 # Expense Tracker
 
-Expense Tracker is a full-stack personal expense tracker and reusable starter project. Explore the code, try the live demo, or clone and adapt it with your own database, environment variables, and deployment setup.
+Expense Tracker is a full-stack personal finance-awareness tool. It helps users record income and expenses, understand what they have left to spend each month, and build a habit of saving money.
 
-## Features
+The repository currently contains the working MVP for personal expense tracking. V2 is the next product direction and is being defined on top of that foundation.
 
-- Register, log in, and log out
-- Create, edit, and delete expenses
-- Track amount, title, date, category, and optional notes
-- View expenses from newest to oldest
-- Keep expense data separate for each user
-- Use a mobile-first responsive interface
+## V2 Direction
+
+V2 will work with calendar months and expand the app from expense tracking into a broader view of a user's finances. The initial scope includes:
+
+- Income and regular payments
+- Money left to spend for the current month
+- Monthly savings goals and a projected savings reserve
+- Expense tags, filtering, and spending summaries
+- Assisted expense entry through text, receipts, or voice, always requiring user review before saving
+- OpenAPI documentation with a Swagger UI for the API
+- AI features for assisted expense entry, configurable to use the Gemini API or a local LM Studio endpoint
+
+The existing MVP behavior remains part of V2: users can register, log in, and manage their own expenses with a responsive interface.
+
+See the [V2 product requirements](./docs/V2/PRD.md) for the current scope and product rules.
 
 ## Live Demo
 
@@ -47,14 +56,16 @@ Required GitHub Actions secrets are `SUPABASE_DATABASE_URL`, `RESEND_API_KEY`, `
 
 This public repository lets you:
 
-- Explore the implementation and test the live project
-- Clone or fork it as a starting point for your own expense tracker
-- Follow future improvements and releases
+- Explore the current MVP implementation and test the live project
+- Follow the transition from the MVP to V2
+- Clone or fork the project as a starting point for your own finance tracker
 
 ## Tech Stack
 
-- **Frontend:** React, Vite, React Router, Bootstrap
+- **Frontend:** React, Vite, TypeScript, React Router, Bootstrap
 - **Backend:** Flask, SQLAlchemy, Flask-Migrate/Alembic, Gunicorn
+- **API documentation:** OpenAPI and Swagger UI 
+- **AI**: Gemini or local LM Studio
 - **Database:** PostgreSQL
 - **Authentication:** JWT
 - **Deployment:** Vercel, Render, Supabase
