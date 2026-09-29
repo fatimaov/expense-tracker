@@ -92,7 +92,7 @@ The reflective context tags are optional. They do not replace normal expense cat
 
 ### Layer 1: Transaction tracking
 
-Users can record one-time income and one-time expenses using general categories. This is the raw transaction history that the rest of the application builds on. The quick-entry flow is designed for everyday one-time expenses and should remain fast and simple. See the [extended Layer 1 requirements](#layer-1-extended-transaction-tracking).
+Users can record one-time income and one-time expenses using general categories. This is the raw transaction history that the rest of the application builds on. The quick-entry flow is designed for everyday one-time expenses and should remain fast and simple. [Read more](#layer-1-extended-transaction-tracking).
 
 ### Layer 2: Monthly cashflow and savings reserve
 
@@ -164,17 +164,9 @@ V2 is successful when a user can record income and expenses, understand their se
 
 ### Layer 1 extended: Transaction tracking
 
-Layer 1 provides the basic record of the user's financial activity. It should be useful on its own, before analytics, savings goals, recurring commitment management, richer reflection, or AI features are added.
+Layer 1 provides the raw transaction history and should be useful on its own. Users can add, view, edit, and delete one-time income and expense records for the current or past months.
 
-Users can record:
-
-- one-time income records;
-- one-time expense records;
-- expenses organized with general categories;
-- income organized with general income categories;
-- optional notes that can support richer context in later layers.
-
-Users can view, add, edit, and delete transactions from the current month or past months. This CRUD behaviour is part of the raw transaction history and should not be limited to the active month.
+Each record includes an amount, title, category, date, and optional notes. Income and expense forms may use different labels and categories, but both belong to the same transaction history.
 
 The application should start with general expense categories such as:
 
@@ -201,4 +193,4 @@ It should also provide general income categories such as:
 
 Users should be able to add, rename, or deactivate categories later. Existing transaction history should remain understandable if a category is changed or deactivated.
 
-Layer 1 creates the raw transaction history. It should let users review and manage their recorded transactions while leaving monthly calculations, analytics, savings goals, recurring commitment automation, richer context, and AI support to later layers.
+The quick-add experience should make one-time expense recording easy. The initial forms do not include B/U/C classification, recurring-commitment management, fixed or variable commitment types, or reflective context tags. Those concepts, along with specialized transaction types, monthly calculations, analytics, savings goals, richer context, and AI support, belong to later layers.
