@@ -2,50 +2,54 @@
 
 ## Product summary
 
-Expense Tracker is a private personal finance-awareness application for a single user. It helps users understand their cashflow, make more conscious decisions with their money, and work toward a life that reflects their priorities.
-
-The application combines income, expenses, recurring commitments, monthly spending availability, savings goals, and personal reflection. It is more than a record of transactions: it helps users understand what their money is doing and what they want it to support.
+Expense Tracker is a personal money companion that helps users turn everyday financial activity into a clearer sense of control and progress. It brings income, expenses, monthly availability, savings, and financial priorities into one place so users can understand where their money is going, know what they can safely spend, and gradually direct more of their money toward the life they want. The experience starts as a simple and useful tracking tool, then becomes more powerful as users add savings goals, recurring commitments, richer spending context, and guided reflection.
 
 V2 builds this direction on top of the completed expense-tracking MVP. The existing MVP behaviour remains available and stable.
 
 ## Target audience
 
-V2 is for people who want a clear and calm way to manage their personal finances without maintaining a restrictive, complicated budget. It is especially useful for users who want to understand their monthly spending capacity, notice recurring commitments, build savings for meaningful goals, and reflect on whether their financial choices match what matters to them.
+Expense Tracker is for people managing their own personal finances who want a clearer and more intentional relationship with money. This includes students, people beginning to manage their finances independently, and anyone who wants to understand their cashflow, build better habits, reduce financial stress, or make progress toward meaningful goals.
 
-The product is designed for individual personal finances, not shared household accounts, business accounting, or professional financial management.
+The audience may have different levels of financial knowledge and different situations: regular or irregular income, little or substantial savings, debt or no debt, and short-term or long-term goals. The common motivation is to understand the numbers, know what is available to spend, make more conscious choices, and use money to support priorities such as safety, travel, learning, health, family, freedom, or retirement.
 
-## Product direction and principles
+The experience should be approachable for people who feel overwhelmed by money or traditional budgeting. It should encourage awareness and consistency without shame, guilt, or the expectation that users must manage their finances perfectly.
 
-The product asks two connected questions:
+The current product is for individual use only. Shared household finances, couples contributing to common goals, and connected accounts may be considered in the future, but they are outside the current scope. The product is also not intended for business accounting, investment management, tax reporting, or professional financial advice.
 
-> “Where did my money go?”
+## Product vision and layered experience
 
-and:
+The application is designed to work without requiring every feature. Each layer adds more context and support to the one before it:
 
-> “What is my money helping me do?”
+1. **Transaction tracking:** users record income and one-time expenses using general categories. This creates the raw history of their financial activity.
+2. **Monthly cashflow and reserve:** the application groups transactions by calendar month, shows the active month's money left to spend, and carries the month's final positive or negative result into the savings reserve when the month closes.
+3. **Analytics and awareness:** users explore the full transaction history through metrics, graphics, categories, filters, and search, while also reviewing the savings reserve over time.
+4. **Savings goals:** users can give their savings a purpose by creating short-, medium-, and long-term goals with progress and deadlines.
+5. **Recurring commitments:** users can make subscriptions, bills, utilities, loans, and installment payments visible and easier to manage.
+6. **Richer spending context:** B/U/C, Need/Love/Like/Want, expense categories, and Money dial reflections help users describe their choices more accurately and identify patterns.
+7. **AI Companion:** an optional conversational tool can answer questions using the user's data, help interpret patterns, brainstorm goals, and support personal reflection.
 
-Expense Tracker should make the financial picture visible first and help the user interpret it second. It should connect cashflow, everyday choices, and personal priorities without judging the user or making decisions on their behalf.
+The product should make the financial picture visible before offering interpretation. It should be calm and non-judgmental, explain its calculations, and keep the user in control of their records, goals, and decisions.
 
-The experience should follow these principles:
+## User journey
 
-- **Clarity before advice:** calculations should be understandable and based on the user's recorded information.
-- **Awareness without shame:** a deficit, unfinished goal, or expensive month is information to work with, not a moral judgment.
-- **Money follows meaning:** saving is easier to sustain when it is connected to a purpose.
-- **Spend consciously, not perfectly:** the goal is intentional spending, not eliminating every enjoyable expense.
-- **Small systems beat willpower:** the product should favour repeatable habits such as capturing transactions, reviewing commitments, reserving savings, and checking progress.
+1. The user opens the application and sees the current monthly dashboard.
+2. They record income and quickly add one-time expenses as they happen.
+3. They review their available money, monthly result, and savings reserve.
+4. They explore their full history through search, filters, and analytics.
+5. If useful, they add recurring commitments and savings goals.
+6. They use classifications, reflection, or the AI Companion to understand patterns and priorities.
+7. They adjust their commitments and goals as their circumstances change.
 
-## V2 goals
+## User stories
 
-V2 should help users:
+- As a user, I want to know how much money I have left to spend this month so that I can make decisions with a clear picture of my cashflow.
+- As a user, I want to see how each month's surplus or deficit affects my savings reserve, even if I have no specific savings goal.
+- As a user, I want to distinguish one-time expenses from recurring commitments so that I can see which costs continue into future months.
+- As a user, I want to create savings goals with deadlines so that I can give part of my savings a clear purpose and direction.
+- As a user, I want to review my spending by selected month or date range and category so that I can notice patterns and make better choices.
+- As a user, I want to reflect on what matters to me so that my spending and savings support my priorities.
+- As a user, I want to ask an AI Companion questions about my financial activity so that I can understand it and think through possible goals without giving up control of my decisions.
 
-- understand their income, spending, and monthly cashflow;
-- know how much money is available to spend during a selected month;
-- see recurring commitments separately from one-time expenses;
-- build and track multiple savings goals;
-- understand how each month affects their savings reserve;
-- review their financial history through filters, metrics, and visual summaries;
-- reflect on spending, priorities, and future plans;
-- use an AI companion to explore their data and think through goals without receiving prescriptive financial advice.
 
 ## Key concepts
 
@@ -53,17 +57,22 @@ These concepts should be used consistently across the product and its documentat
 
 - **Income:** money received during a specific period.
 - **One-time expense:** an individual transaction entered through the quick expense flow.
+- **Transaction history:** the complete record of income and one-time expenses across months.
 - **Recurring commitment:** a repeated financial obligation, such as a subscription, rent, utility, loan, or installment.
 - **Fixed commitment:** a recurring obligation with a predictable amount.
 - **Variable commitment:** a recurring obligation whose amount changes, such as electricity or water.
+- **Cashflow:** the movement of money into and out of the user's finances during a selected month or date range.
 - **B/U/C classification:** Bill, Usage, or Choice spending.
 - **Expense category:** a descriptive group such as Food, Health, Travel, Transport, or Entertainment.
-- **Reflection label:** optional Need, Love, Like, or Want context for understanding the user's relationship with spending.
+- **Reflective context tags:** optional Need, Love, Like, or Want tags that add personal meaning and emotional context to an expense.
 - **Month:** a selected calendar month, with the current month shown by default.
-- **Money left to spend:** the amount available after income, commitments, expenses, and planned savings are considered.
+- **Money left to spend:** the amount available during a selected month after income, commitments, expenses, and any active goal allocation are considered.
+- **Monthly result:** the final positive or negative amount produced by a month after its income, expenses, commitments, and active goal allocations are considered.
 - **Savings goal:** a named purpose with a target amount, time horizon, deadline, and contribution plan.
+- **Goal allocation:** the part of available money assigned to an active savings goal.
 - **Savings reserve:** accumulated savings progress kept separate from money available for ordinary spending.
 - **Financial reflection:** reviewing spending patterns and priorities to make more intentional decisions.
+- **Money dial:** an area where the user finds meaningful value in spending and may intentionally choose to spend more.
 - **AI Companion:** an optional conversational assistant that explains recorded data, supports reflection, and helps users brainstorm goals.
 
 The B/U/C lens is used as follows:
@@ -72,55 +81,50 @@ The B/U/C lens is used as follows:
 - **Usage:** expenses that change according to consumption, such as electricity, water, gas, or mobile data.
 - **Choice:** spending the user can increase, reduce, replace, or stop, such as entertainment, shopping, eating out, or flexible subscriptions.
 
-Need/Love/Like/Want is optional reflective context. It does not replace normal expense categories or act as a moral score.
+The reflective context tags are optional. They do not replace normal expense categories or act as a moral score. They are used as follows:
+
+- **Need:** necessary for basic wellbeing or functioning.
+- **Love:** creates lasting value or joy.
+- **Like:** creates temporary enjoyment.
+- **Want:** mainly immediate gratification.
 
 ## Core features
 
-### Income and expense tracking
+### Layer 1: Transaction tracking
 
-Users can record and manage income and expenses for different dates and months. The quick-entry flow is designed for one-time expenses and should remain fast and simple.
+Users can record income and one-time expenses using general categories. This is the raw transaction history that the rest of the application builds on. The quick-entry flow is designed for everyday one-time expenses and should remain fast and simple.
 
-### Expense categories and reflection
+### Layer 2: Monthly cashflow and savings reserve
 
-Users can organize expenses with standard or personal categories, classify them with B/U/C, and optionally add Need/Love/Like/Want context for later reflection and analysis.
+The application groups transactions by calendar month and focuses the dashboard on the active month. It shows income, expenses, and money left to spend during the active month. When a month closes, its final positive or negative result is added to the savings reserve. This layer works without specific savings goals.
 
-### Monthly cashflow
+### Layer 3: Analytics and awareness
 
-The application calculates and explains the selected month's income, commitments, expenses, savings allocation, and money left to spend. A month can show a surplus or deficit, and the result remains visible rather than being hidden.
+The application turns the raw transaction history into useful information. Users can review the full history through metrics, graphics, categories, filters, and search. Analytics also displays the savings reserve and how it changes across months.
 
-### Recurring commitments
+### Layer 4: Savings goals
 
-Users can create and manage recurring financial commitments separately from one-time expenses. Commitments can be fixed or variable and may represent subscriptions, memberships, essential bills, utilities, loans, or installment purchases.
+Users can optionally create multiple short-, medium-, and long-term goals and assign part of their savings progress to them. Goals provide purpose, deadlines, recommended contributions, and visible progress. If a goal is paused, cancelled, archived, or replaced, its past contribution history remains intact.
 
-The application should show the expected monthly and yearly impact of active commitments and avoid counting an expected payment twice when the user records the actual expense.
+### Layer 5: Recurring commitments
 
-### Savings goals and reserve
+Users can optionally create and manage repeated financial commitments separately from one-time expenses. These may be fixed or variable and may represent subscriptions, memberships, essential bills, utilities, loans, or installment purchases. The application shows their expected monthly and yearly impact and avoids double-counting when an actual payment is recorded.
 
-Users can create multiple short-, medium-, and long-term savings goals. The application shows recommended contributions, progress, deadlines, and the effect of changes to a goal. Past contributions remain part of the user's history if a goal is paused, cancelled, archived, or replaced.
+### Layer 6: Richer spending context
 
-The savings reserve shows accumulated savings progress separately from money left to spend.
+Users can add more meaning to their records through expense categories, B/U/C classification, and optional reflective context tags. They can also identify their personal Money dials: the areas where spending creates meaningful value for them. This layer enriches analytics and supports reflection but is not required for basic tracking.
 
-### History and analytics
+### Layer 7: AI Companion
 
-Users can review their full financial history over a selected period. They can search and filter records and view summaries by month, category, recurring status, B/U/C classification, income, expenses, savings, and other useful measures.
+The AI Companion is an optional conversational tool that uses the user's application data to answer questions, explain patterns, compare periods, brainstorm savings goals, and support reflection. It should distinguish facts from suggestions, explain the period and data behind an answer, and never change records or make decisions without explicit user action.
 
-### Personal priorities and reflection
-
-The application helps users identify what matters to them, such as safety, travel, health, learning, family, freedom, or retirement. Users can reflect on what they want to spend more on, what they are willing to reduce, and whether their financial activity supports their priorities.
-
-Users can also identify their personal “money dials”: the areas where spending creates meaningful value for them. The application should support the complementary reflection of what they want to spend more freely on and what they are willing to reduce.
-
-### AI Companion
-
-The AI Companion can answer questions about the user's recorded information, explain patterns, compare periods, help brainstorm savings goals, and guide reflection. It should distinguish facts from suggestions, explain the period and data behind an answer, and never change records or make decisions without explicit user action.
-
-The AI Companion is deferred if it would compromise the reliability of the core cashflow, commitment, savings, or history features.
+The AI Companion is not required for the application to work. AI-assisted one-time expense entry is a future enhancement and must not block the manual quick-entry flow.
 
 ## Main application views
 
 ### Monthly Dashboard
 
-The default private-area view. It focuses only on the selected month and displays the month’s income, one-time expenses, recurring commitments, money left to spend, savings allocation, savings reserve, goal progress, and recent records.
+The default private-area view. It focuses only on the selected month and displays the month’s income, one-time expenses, recurring commitments, money left to spend, active goal allocation, savings reserve, goal progress, and recent records.
 
 The dashboard provides quick access to add a one-time expense and add income. Selecting the savings reserve opens a summary of savings-goal progress.
 
@@ -144,26 +148,6 @@ A conversational view for asking questions about financial activity, exploring p
 
 A place for personal preferences, categories, and other account-level configuration.
 
-## User journey
-
-1. The user opens the application and sees the current monthly dashboard.
-2. They record income and quickly add one-time expenses as they happen.
-3. They add recurring commitments so the monthly picture includes ongoing obligations.
-4. They create savings goals connected to personal priorities and future plans.
-5. They review how much money is left to spend and how much is being reserved.
-6. At the end of a month, they review the result and compare it with previous periods.
-7. They use history, analytics, or the AI Companion to understand patterns and decide what to adjust.
-8. They update commitments and savings goals as their circumstances change.
-
-## User stories
-
-- As a user, I want to know how much money I have left to spend this month so that I can make decisions with a clear picture of my cashflow.
-- As a user, I want to distinguish one-time expenses from recurring commitments so that I can see which costs continue into future months.
-- As a user, I want to create savings goals with deadlines so that my saving has a clear purpose and direction.
-- As a user, I want to review my spending by period and category so that I can notice patterns and make better choices.
-- As a user, I want to reflect on what matters to me so that my spending and savings support my priorities.
-- As a user, I want to ask an AI companion questions about my financial activity so that I can understand it and think through possible goals without giving up control of my decisions.
-
 ## Boundaries
 
 V2 does not include bank or card connections, automatic transaction imports, shared finances, business accounting, investment execution, tax reporting, or professional financial advice.
@@ -172,16 +156,6 @@ Debt and installment commitments can be represented at a basic visibility level,
 
 The data model, transaction fields, technical architecture, technology choices, and relationships between entities belong in the architecture document, not in this PRD.
 
-## Existing MVP foundation
-
-The completed MVP provides registration, login, user data isolation, and personal expense management. Users can add, view, edit, and delete expenses with an amount, title or description, date, category, and optional notes.
-
-The MVP includes the original fixed categories of Transport, Accommodation, Food, Activities, and Other, along with responsive layout, loading and error states, and a newest-first expense list. V2 extends this foundation without redefining or removing the existing expense-tracking behaviour.
-
-## Long-term direction
-
-Beyond V2, Expense Tracker can grow into a personal money companion that helps users understand their patterns, build reserves, fund meaningful goals, and make financial decisions with more confidence. It should remain smaller than a bank, accounting system, investment platform, or professional financial-advice service. The user stays in control of their data, goals, and decisions.
-
 ## Definition of success
 
-V2 is successful when a user can record income and expenses, understand their selected month's available money, manage recurring commitments, track multiple savings goals, review their history and analytics, and use reflection tools to connect their financial choices with their personal priorities.
+V2 is successful when a user can record income and expenses, understand their selected month's available money, review their history and analytics, and see monthly progress accumulate in a savings reserve. Recurring commitments, savings goals, reflection tools, and the AI Companion should add value without being required for the core experience to work.
