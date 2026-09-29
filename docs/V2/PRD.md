@@ -20,7 +20,7 @@ The current product is for individual use only. Shared household finances, coupl
 
 The application is designed to work without requiring every feature. Each layer adds more context and support to the one before it:
 
-1. **Transaction tracking:** users record income and one-time expenses using general categories. This creates the raw history of their financial activity.
+1. **Transaction tracking:** users record one-time income and one-time expenses using general categories. This creates the raw history of their financial activity.
 2. **Monthly cashflow and reserve:** the application groups transactions by calendar month, shows the active month's money left to spend, and carries the month's final positive or negative result into the savings reserve when the month closes.
 3. **Analytics and awareness:** users explore the full transaction history through metrics, graphics, categories, filters, and search, while also reviewing the savings reserve over time.
 4. **Savings goals:** users can give their savings a purpose by creating short-, medium-, and long-term goals with progress and deadlines.
@@ -92,7 +92,7 @@ The reflective context tags are optional. They do not replace normal expense cat
 
 ### Layer 1: Transaction tracking
 
-Users can record income and one-time expenses using general categories. This is the raw transaction history that the rest of the application builds on. The quick-entry flow is designed for everyday one-time expenses and should remain fast and simple.
+Users can record one-time income and one-time expenses using general categories. This is the raw transaction history that the rest of the application builds on. The quick-entry flow is designed for everyday one-time expenses and should remain fast and simple. See the [extended Layer 1 requirements](#layer-1-extended-transaction-tracking).
 
 ### Layer 2: Monthly cashflow and savings reserve
 
@@ -159,3 +159,46 @@ The data model, transaction fields, technical architecture, technology choices, 
 ## Definition of success
 
 V2 is successful when a user can record income and expenses, understand their selected month's available money, review their history and analytics, and see monthly progress accumulate in a savings reserve. Recurring commitments, savings goals, reflection tools, and the AI Companion should add value without being required for the core experience to work.
+
+## Detailed layer explanations
+
+### Layer 1 extended: Transaction tracking
+
+Layer 1 provides the basic record of the user's financial activity. It should be useful on its own, before analytics, savings goals, recurring commitment management, richer reflection, or AI features are added.
+
+Users can record:
+
+- one-time income records;
+- one-time expense records;
+- expenses organized with general categories;
+- income organized with general income categories;
+- optional notes that can support richer context in later layers.
+
+Users can view, add, edit, and delete transactions from the current month or past months. This CRUD behaviour is part of the raw transaction history and should not be limited to the active month.
+
+The application should start with general expense categories such as:
+
+- Food and groceries;
+- Housing and bills;
+- Transport and fuel;
+- Health;
+- Travel and accommodation;
+- Education;
+- Entertainment;
+- Shopping and personal care;
+- Other.
+
+It should also provide general income categories such as:
+
+- Salary or wages;
+- Freelance or contract work;
+- Business income;
+- Scholarship or study support;
+- Benefits or pension;
+- Gift or family support;
+- Interest or other income;
+- Other.
+
+Users should be able to add, rename, or deactivate categories later. Existing transaction history should remain understandable if a category is changed or deactivated.
+
+Layer 1 creates the raw transaction history. It should let users review and manage their recorded transactions while leaving monthly calculations, analytics, savings goals, recurring commitment automation, richer context, and AI support to later layers.
