@@ -35,20 +35,6 @@ The current product is for individual use only. Shared household finances, coupl
 - As a user, I want to add recurring commitments and see their financial impact so that I can plan for costs that continue over time.
 - As a user, I want to reflect on my spending and ask the AI Companion questions so that I can make choices that support my priorities.
 
-## Product vision and layered experience
-
-The application is designed to work without requiring every feature. Each layer adds more context and support to the one before it:
-
-1. **Transaction tracking:** users record income and one-time expenses using general categories. This creates the raw history of their financial activity.
-2. **Monthly cashflow and reserve:** the application groups transactions by calendar month, shows the active month's money left to spend, and lets the user switch a maximum monthly savings allocation on or off before updating the available balance and savings reserve.
-3. **Analytics and awareness:** users explore the full transaction history through metrics, graphics, categories, filters, and search, while also reviewing the savings reserve over time.
-4. **Savings goals:** users can give their savings a purpose by creating short-, medium-, and long-term goals with progress and deadlines.
-5. **Recurring commitments:** users can make subscriptions, bills, utilities, loans, and installment payments visible and easier to manage.
-6. **Richer spending context:** B/U/C, Need/Love/Like/Want, expense categories, and Money dial reflections help users describe their choices more accurately and identify patterns.
-7. **AI Companion:** an optional conversational tool can answer questions using the user's data, help interpret patterns, brainstorm goals, and support personal reflection.
-
-The product should make the financial picture visible before offering interpretation. It should be calm and non-judgmental, explain its calculations, and keep the user in control of their records, goals, and decisions.
-
 ## Key concepts
 
 These concepts should be used consistently across the product and its documentation.
@@ -92,6 +78,8 @@ The reflective context tags are optional. They do not replace normal expense cat
 
 ## Core features
 
+The application is organized into core capabilities that can be implemented incrementally. Each feature builds on the transaction and cashflow foundation, but later capabilities remain optional for users. Layers 1 and 2 provide the core tracking experience; Savings goals, recurring commitments, richer spending context, and the AI Companion add value as users need them.
+
 ### Layer 1: Transaction tracking
 
 Layer 1 establishes the transaction history that the rest of the application builds on. Users can create and manage income and expense records for the current or past months using general categories. Records may be entered manually or through optional AI-assisted methods, with the user remaining responsible for reviewing and approving each record before it is saved. [Read more](#layer-1-extended-transaction-tracking).
@@ -123,6 +111,8 @@ The AI Companion is an optional conversational tool that uses the user's applica
 The AI Companion is not required for the application to work. AI-assisted income and expense entry belongs to Layer 1 and must not block the manual entry flow.
 
 ## Main application views
+
+These views describe the main areas of the application from the user's perspective. They are a navigation and experience map, not an implementation sequence. Some views support multiple core features, and optional capabilities appear when the user chooses to use them.
 
 ### Monthly Dashboard
 
