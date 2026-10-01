@@ -33,19 +33,25 @@ The product should make the financial picture visible before offering interpreta
 ## User journey
 
 1. The user opens the application and sees the current monthly dashboard.
-2. They record income and quickly add one-time expenses as they happen.
-3. They review their available money, monthly result, and savings reserve.
-4. They explore their full history through search, filters, and analytics.
-5. If useful, they add recurring commitments and savings goals.
-6. They use classifications, reflection, or the AI Companion to understand patterns and priorities.
-7. They adjust their commitments and goals as their circumstances change.
+2. They add income and expenses manually or use an AI-assisted method: natural-language input, a receipt image, or voice input.
+3. If they use AI-assisted entry, they review, correct, and approve the proposed record before it is saved.
+4. They review Money left to spend, the Monthly result, the Available balance, and the Savings reserve.
+5. They explore their transaction history through search, filters, metrics, and analytics, and correct or delete records when needed.
+6. If useful, they add recurring commitments and Savings goals, set the active month's Goal allocation, and make transfers.
+7. They use expense categories, B/U/C classification, reflective context tags, Money dials, or the AI Companion to understand patterns and priorities.
+8. They adjust their commitments, goals, and records as their circumstances change.
 
 ## User stories
 
 - As a user, I want to know how much money I have left to spend this month so that I can make decisions with a clear picture of my cashflow.
-- As a user, I want to see how each month's surplus or deficit affects my available balance and how my goal contributions grow my savings reserve.
+- As a user, I want to understand how each month's Monthly result affects my Available balance or Savings reserve so that I can see the effect of my spending and savings choices.
+- As a user, I want to record income and expenses manually or through natural-language, receipt image, or voice input so that I can choose the easiest entry method.
+- As a user, I want to review, correct, and approve an AI-generated transaction draft before it is saved so that I remain in control of my transaction history.
+- As a user, I want to edit or delete a past record and understand how it affects later Monthly results and balances.
 - As a user, I want to distinguish one-time expenses from recurring commitments so that I can see which costs continue into future months.
+- As a user, I want to create and manage recurring commitments so that I can understand their expected monthly and yearly impact.
 - As a user, I want to create savings goals with deadlines so that I can give part of my savings a clear purpose and direction.
+- As a user, I want to adjust the active month's Goal allocation and transfer money between my Available balance, Savings goals, and Unassigned reserve so that I can respond to changing priorities.
 - As a user, I want to review my spending by selected month or date range and category so that I can notice patterns and make better choices.
 - As a user, I want to reflect on what matters to me so that my spending and savings support my priorities.
 - As a user, I want to ask an AI Companion questions about my financial activity so that I can understand it and think through possible goals without giving up control of my decisions.
