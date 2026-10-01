@@ -16,6 +16,25 @@ The experience should be approachable for people who feel overwhelmed by money o
 
 The current product is for individual use only. Shared household finances, couples contributing to common goals, and connected accounts may be considered in the future, but they are outside the current scope. The product is also not intended for business accounting, investment management, tax reporting, or professional financial advice.
 
+## User journey
+
+1. The user opens the application and sees the current monthly dashboard with their main balances and activity.
+2. They add income and expenses manually or use an AI-assisted method, then review and approve any proposed record.
+3. They review their Money left to spend, Monthly result, Available balance, Savings reserve, and Savings goal progress.
+4. When needed, they use Settings to add starting balances, adjust the active month's Goal allocation, or manage transfers and preferences.
+5. They explore their transaction history and analytics, then add recurring commitments or Savings goals as their needs grow.
+6. They use spending context or the AI Companion to understand their patterns and adjust their records, commitments, and goals over time.
+
+## User stories
+
+- As a user, I want to record income and expenses in the way that is easiest for me so that keeping my transaction history up to date feels simple.
+- As a user, I want to review and approve AI-assisted entries so that I remain in control of what is saved.
+- As a user, I want to understand my monthly cashflow, Money left to spend, Available balance, and Savings reserve so that I can make informed spending decisions.
+- As a user, I want to review my transaction history and analytics so that I can understand my spending patterns over time.
+- As a user, I want to create Savings goals and manage their contributions so that my savings have a clear purpose and visible progress.
+- As a user, I want to add recurring commitments and see their financial impact so that I can plan for costs that continue over time.
+- As a user, I want to reflect on my spending and ask the AI Companion questions so that I can make choices that support my priorities.
+
 ## Product vision and layered experience
 
 The application is designed to work without requiring every feature. Each layer adds more context and support to the one before it:
@@ -29,33 +48,6 @@ The application is designed to work without requiring every feature. Each layer 
 7. **AI Companion:** an optional conversational tool can answer questions using the user's data, help interpret patterns, brainstorm goals, and support personal reflection.
 
 The product should make the financial picture visible before offering interpretation. It should be calm and non-judgmental, explain its calculations, and keep the user in control of their records, goals, and decisions.
-
-## User journey
-
-1. The user opens the application and sees the current monthly dashboard.
-2. They add income and expenses manually or use an AI-assisted method: natural-language input, a receipt image, or voice input.
-3. If they use AI-assisted entry, they review, correct, and approve the proposed record before it is saved.
-4. They review Money left to spend, the Monthly result, the Available balance, and the Savings reserve.
-5. They explore their transaction history through search, filters, metrics, and analytics, and correct or delete records when needed.
-6. If useful, they add recurring commitments and Savings goals, set the active month's Goal allocation, and make transfers.
-7. They use expense categories, B/U/C classification, reflective context tags, Money dials, or the AI Companion to understand patterns and priorities.
-8. They adjust their commitments, goals, and records as their circumstances change.
-
-## User stories
-
-- As a user, I want to know how much money I have left to spend this month so that I can make decisions with a clear picture of my cashflow.
-- As a user, I want to understand how each month's Monthly result affects my Available balance or Savings reserve so that I can see the effect of my spending and savings choices.
-- As a user, I want to record income and expenses manually or through natural-language, receipt image, or voice input so that I can choose the easiest entry method.
-- As a user, I want to review, correct, and approve an AI-generated transaction draft before it is saved so that I remain in control of my transaction history.
-- As a user, I want to edit or delete a past record and understand how it affects later Monthly results and balances.
-- As a user, I want to distinguish one-time expenses from recurring commitments so that I can see which costs continue into future months.
-- As a user, I want to create and manage recurring commitments so that I can understand their expected monthly and yearly impact.
-- As a user, I want to create savings goals with deadlines so that I can give part of my savings a clear purpose and direction.
-- As a user, I want to adjust the active month's Goal allocation and transfer money between my Available balance, Savings goals, and Unassigned reserve so that I can respond to changing priorities.
-- As a user, I want to review my spending by selected month or date range and category so that I can notice patterns and make better choices.
-- As a user, I want to reflect on what matters to me so that my spending and savings support my priorities.
-- As a user, I want to ask an AI Companion questions about my financial activity so that I can understand it and think through possible goals without giving up control of my decisions.
-
 
 ## Key concepts
 
