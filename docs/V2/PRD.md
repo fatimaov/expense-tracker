@@ -96,7 +96,7 @@ The reflective context tags are optional. They do not replace normal expense cat
 
 ### Layer 1: Transaction tracking
 
-Users can record one-time income and one-time expenses using general categories. This is the raw transaction history that the rest of the application builds on. The quick-entry flow is designed for everyday one-time expenses and should remain fast and simple. [Read more](#layer-1-extended-transaction-tracking).
+Layer 1 establishes the transaction history that the rest of the application builds on. Users can create and manage one-time income and expense records for the current or past months using general categories. Records may be entered manually or through optional AI-assisted methods, with the user remaining responsible for reviewing and approving each record before it is saved. [Read more](#layer-1-extended-transaction-tracking).
 
 ### Layer 2: Monthly cashflow and savings reserve
 
@@ -122,7 +122,7 @@ Users can add more meaning to their records through expense categories, B/U/C cl
 
 The AI Companion is an optional conversational tool that uses the user's application data to answer questions, explain patterns, compare periods, brainstorm savings goals, and support reflection. It should distinguish facts from suggestions, explain the period and data behind an answer, and never change records or make decisions without explicit user action.
 
-The AI Companion is not required for the application to work. AI-assisted one-time expense entry is a future enhancement and must not block the manual quick-entry flow.
+The AI Companion is not required for the application to work. AI-assisted one-time income and expense entry belongs to Layer 1 and must not block the manual entry flow.
 
 ## Main application views
 
@@ -168,9 +168,17 @@ V2 is successful when a user can record income and expenses, understand their se
 
 ### Layer 1 extended: Transaction tracking
 
-Layer 1 provides the raw transaction history and should be useful on its own. Users can add, view, edit, and delete one-time income and expense records for the current or past months.
+Layer 1 provides the raw transaction history and should be useful on its own. Users can add, view, edit, and delete one-time income and expense records for the current or past months. Records can be created manually or through an AI-assisted entry flow, but every AI-assisted record must be reviewed and explicitly approved by the user before it is saved.
 
 Each record includes an amount, category, date, and optional notes. Income and expense forms may use different labels and categories, but both belong to the same transaction history. Named records such as Spotify or Mortgage belong to recurring commitments introduced in a later layer.
+
+Layer 1 supports three AI-assisted entry methods in addition to the manual form:
+
+- **Natural-language entry:** the user describes an income or expense in their own words. The AI identifies whether it is income or an expense and proposes the amount, category, date, and notes for the matching form.
+- **Receipt image entry:** the user takes or uploads a picture of a receipt. The AI interprets the receipt and proposes a one-time expense in the matching form, including the amount, date, category, and useful notes when they are available.
+- **Voice entry:** the user records a voice message through browser-supported voice input. The application converts the message to text, and the AI interprets that text and proposes the fields for the matching income or expense form.
+
+The AI should show the proposed transaction clearly, preserve uncertainty where the input is incomplete or ambiguous, and let the user correct any field before approval. It must not save a record, create a recurring commitment, or silently choose a category or date without the user's approval. The manual form remains available at all times and is the fallback when AI entry is unavailable or the user prefers to enter the record directly.
 
 The application should start with general expense categories such as:
 
@@ -197,7 +205,7 @@ It should also provide general income categories such as:
 
 Users should be able to add, rename, or deactivate categories later. Existing transaction history should remain understandable if a category is changed or deactivated.
 
-The quick-add experience should make one-time expense recording easy. The initial forms do not include B/U/C classification, recurring-commitment management, fixed or variable commitment types, or reflective context tags. Those concepts, along with specialized transaction types, monthly calculations, analytics, savings goals, richer context, and AI support, belong to later layers.
+The quick-add experience should make one-time expense recording easy, whether the user enters the fields manually or approves an AI-generated draft. The initial forms do not include B/U/C classification, recurring-commitment management, fixed or variable commitment types, or reflective context tags. Those concepts, along with specialized transaction types, monthly calculations, analytics, savings goals, and richer context, belong to later layers. AI-assisted entry is available in Layer 1, while the broader AI Companion remains an optional later-layer experience.
 
 ### Layer 2 extended: Monthly cashflow and savings reserve
 
