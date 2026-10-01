@@ -54,16 +54,24 @@ This public repository lets you:
 - Follow the transition from the MVP to V2
 - Clone or fork the project as a starting point for your own finance tracker
 
-## Tech Stack
+## Tech Stack and V2 Implementation
 
-- **Frontend:** React, Vite, TypeScript, React Router, Bootstrap
+Current stack:
+
+- **Frontend:** React, Vite, JavaScript, React Router, Bootstrap
 - **Backend:** Flask, SQLAlchemy, Flask-Migrate/Alembic, Gunicorn
-- **API documentation:** OpenAPI and Swagger UI 
-- **AI**: Gemini or local LM Studio
+- **API:** Flask JSON API
 - **Database:** PostgreSQL
 - **Authentication:** JWT
 - **Deployment:** Vercel, Render, Supabase
 - **Package management:** npm, Pipenv
+
+Planned or under consideration for V2:
+
+- **Frontend:** migrate the application to TypeScript and implement the complete V2 UI design
+- **API documentation:** add OpenAPI documentation and Swagger UI
+- **AI providers:** add a cloud AI provider and a local AI provider for assisted entry and the AI Companion; specific models are still to be decided
+- **Containerization:** Dockerize the project if it fits the deployment and development workflow
 
 ## Getting Started
 
