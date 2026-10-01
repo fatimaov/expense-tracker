@@ -4,7 +4,7 @@ on:
   # Allows manual execution from GitHub Actions
   workflow_dispatch:
 
-  # Runs automatically every Monday at 08:00 UTC
+  # Runs automatically on day 1 of every month at 09:00 UTC
   schedule:
     - cron: "0 9 1 * *"
 
