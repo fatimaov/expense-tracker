@@ -6,15 +6,9 @@ The repository currently contains the working MVP for personal expense tracking.
 
 ## V2 Direction
 
-V2 will work with calendar months and expand the app from expense tracking into a broader view of a user's finances. The initial scope includes:
+V2 expands the MVP into a broader personal finance tool organized around calendar months. The core experience helps users record income and expenses, understand their monthly cashflow and balances, and review their transaction history.
 
-- Income and regular payments
-- Money left to spend for the current month
-- Monthly savings goals and a projected savings reserve
-- Expense tags, filtering, and spending summaries
-- Assisted expense entry through text, receipts, or voice, always requiring user review before saving
-- OpenAPI documentation with a Swagger UI for the API
-- AI features for assisted expense entry, configurable to use the Gemini API or a local LM Studio endpoint
+Users can add savings goals, recurring commitments, richer spending context, and an optional AI Companion as they need them. They can also create transaction drafts from natural-language input, receipt images, or voice input, but every AI-generated draft must be reviewed and approved before it is saved. The product remains useful for basic tracking without requiring users to use every capability.
 
 The existing MVP behavior remains part of V2: users can register, log in, and manage their own expenses with a responsive interface.
 
