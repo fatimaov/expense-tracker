@@ -20,7 +20,7 @@ The current product is for individual use only. Shared household finances, coupl
 
 The application is designed to work without requiring every feature. Each layer adds more context and support to the one before it:
 
-1. **Transaction tracking:** users record one-time income and one-time expenses using general categories. This creates the raw history of their financial activity.
+1. **Transaction tracking:** users record income and one-time expenses using general categories. This creates the raw history of their financial activity.
 2. **Monthly cashflow and reserve:** the application groups transactions by calendar month, shows the active month's money left to spend, and lets the user switch a maximum monthly savings allocation on or off before updating the available balance and savings reserve.
 3. **Analytics and awareness:** users explore the full transaction history through metrics, graphics, categories, filters, and search, while also reviewing the savings reserve over time.
 4. **Savings goals:** users can give their savings a purpose by creating short-, medium-, and long-term goals with progress and deadlines.
@@ -96,7 +96,7 @@ The reflective context tags are optional. They do not replace normal expense cat
 
 ### Layer 1: Transaction tracking
 
-Layer 1 establishes the transaction history that the rest of the application builds on. Users can create and manage one-time income and expense records for the current or past months using general categories. Records may be entered manually or through optional AI-assisted methods, with the user remaining responsible for reviewing and approving each record before it is saved. [Read more](#layer-1-extended-transaction-tracking).
+Layer 1 establishes the transaction history that the rest of the application builds on. Users can create and manage income and expense records for the current or past months using general categories. Records may be entered manually or through optional AI-assisted methods, with the user remaining responsible for reviewing and approving each record before it is saved. [Read more](#layer-1-extended-transaction-tracking).
 
 ### Layer 2: Monthly cashflow and savings reserve
 
@@ -122,7 +122,7 @@ Users can add more meaning to their records through expense categories, B/U/C cl
 
 The AI Companion is an optional conversational tool that uses the user's application data to answer questions, explain patterns, compare periods, brainstorm savings goals, and support reflection. It should distinguish facts from suggestions, explain the period and data behind an answer, and never change records or make decisions without explicit user action.
 
-The AI Companion is not required for the application to work. AI-assisted one-time income and expense entry belongs to Layer 1 and must not block the manual entry flow.
+The AI Companion is not required for the application to work. AI-assisted income and expense entry belongs to Layer 1 and must not block the manual entry flow.
 
 ## Main application views
 
@@ -130,7 +130,7 @@ The AI Companion is not required for the application to work. AI-assisted one-ti
 
 The default private-area view for the active calendar month. It displays income, one-time expenses, recurring commitments, Money left to spend, Available balance, the total Savings reserve, and recent records. It also shows whether the Goal allocation is active, the desired Goal allocation for the month, and the amount actually reserved from income so far. The Monthly result and monthly savings allocation remain calculation values rather than primary dashboard metrics.
 
-The desired Goal allocation can be €0 when switched off, the amount defined by the Savings goal plan, or the maximum amount supported by the month's cashflow. The reserved amount can remain €0 until income is recorded and updates as income is added. Selecting the total Savings reserve opens the Savings Goals view with the individual goals and their progress. The dashboard provides quick access to add a one-time expense and add income.
+The desired Goal allocation can be €0 when switched off, the amount defined by the Savings goal plan, or the maximum amount supported by the month's cashflow. The reserved amount can remain €0 until income is recorded and updates as income is added. Selecting the total Savings reserve opens the Savings Goals view with the individual goals and their progress. The dashboard provides quick access to add one-time expenses and income manually or through AI-assisted entry methods, including natural-language, receipt image, and voice input.
 
 ### Transactions and Analytics
 
@@ -152,23 +152,11 @@ A conversational view for asking questions about financial activity, exploring p
 
 A place for personal preferences, categories, starting Available balance, starting Savings reserve, transfers between the Available balance and the Unassigned reserve, and other account-level configuration.
 
-## Boundaries
-
-V2 does not include bank or card connections, automatic transaction imports, shared finances, business accounting, investment execution, tax reporting, or professional financial advice.
-
-Debt and installment commitments can be represented at a basic visibility level, but detailed payoff planning is outside the initial V2 scope. AI features must remain explainable, optional, and user-controlled.
-
-The data model, transaction fields, technical architecture, technology choices, and relationships between entities belong in the architecture document, not in this PRD.
-
-## Definition of success
-
-V2 is successful when a user can record income and expenses, understand their selected month's available money, review their history and analytics, and see monthly progress accumulate in a savings reserve. Recurring commitments, savings goals, reflection tools, and the AI Companion should add value without being required for the core experience to work.
-
 ## Detailed layer explanations
 
 ### Layer 1 extended: Transaction tracking
 
-Layer 1 provides the raw transaction history and should be useful on its own. Users can add, view, edit, and delete one-time income and expense records for the current or past months. Records can be created manually or through an AI-assisted entry flow, but every AI-assisted record must be reviewed and explicitly approved by the user before it is saved.
+Layer 1 provides the raw transaction history and should be useful on its own. Users can add, view, edit, and delete income and expense records for the current or past months. Records can be created manually or through an AI-assisted entry flow, but every AI-assisted record must be reviewed and explicitly approved by the user before it is saved.
 
 Each record includes an amount, category, date, and optional notes. Income and expense forms may use different labels and categories, but both belong to the same transaction history. Named records such as Spotify or Mortgage belong to recurring commitments introduced in a later layer.
 
@@ -238,3 +226,15 @@ The rules for this layer are:
 - **Withdrawal:** after a goal withdrawal, the application recalculates the suggested contribution needed to meet the original deadline.
 - **Goal changes:** the user can pause, cancel, archive, or replace a goal. Past contribution history remains intact, and the application does not change the target or deadline silently.
 - **Realistic planning:** when the recalculated contribution is not realistic, the application can show alternatives such as extending the deadline, lowering the target, or pausing contributions.
+
+## Boundaries
+
+V2 is a personal finance tool for individual users. It covers income and expense tracking, monthly cashflow, the Available balance, the Savings reserve, analytics, Savings goals, recurring commitments, richer spending context, and the optional AI Companion. It also supports AI-generated transaction drafts from natural-language descriptions, receipt images, and voice input. Users must review and approve these drafts before they are saved.
+
+V2 does not include bank or card connections, automatic transaction imports, shared household finances, business accounting, investment execution, tax reporting, or professional financial advice. Debt and installment commitments may be represented for visibility, but detailed payoff planning is outside the initial V2 scope.
+
+AI features are optional and must remain explainable and user-controlled. AI may interpret input, explain recorded data, and suggest possibilities, but it must not make changes or decisions without explicit user action. The data model, transaction fields, technical architecture, browser API choices, and entity relationships belong in the architecture document rather than this PRD.
+
+## Definition of success
+
+V2 is successful when an individual user can maintain a reliable transaction history for income and expenses, understand their selected month's cashflow and balances, and review spending patterns through analytics. They should also be able to manage recurring commitments and Savings goals that support their priorities.
