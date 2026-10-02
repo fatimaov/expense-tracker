@@ -50,7 +50,7 @@ These concepts should be used consistently across the product and its documentat
 - **Cashflow/Flujo de caja:** the movement of money into and out of the user's finances during a selected month or date range.
 - **B/U/C classification:** Bill, Usage, or Choice spending.
 - **Expense category:** a descriptive group such as Food, Health, Travel, Transport, or Entertainment.
-- **Reflective context tags/Etiquetas de contexto:** optional Need, Love, Like, or Want tags that add personal meaning and emotional context to an expense.
+- **Reflective context tags/Etiquetas de contexto:** an optional Need, Love, Like, or Want tag that adds personal meaning and emotional context to an expense. An expense can have at most one reflective context tag.
 - **Month:** a selected calendar month, with the current month shown by default.
 - **Available balance/Saldo disponible:** unallocated money carried forward for ordinary spending. It can start with a user-provided opening amount, changes when a month closes, and can become negative after the savings reserve is exhausted.
 - **Money left to spend/Dinero restante para gastar:** the current month's cashflow after income, expenses, and commitments. In Layer 2, it is income minus expenses; when an intentional Goal allocation is enabled in a later layer, that allocation is also deducted. It can be negative even when the user has an available balance from previous months.
@@ -62,7 +62,6 @@ These concepts should be used consistently across the product and its documentat
 - **Savings reserve/Reserva de ahorro:** money intentionally set aside and kept separate from ordinary spending. It includes unassigned reserve money, monthly savings allocations, Goal allocations, and explicit transfers from the available balance.
 - **Unassigned reserve/Reserva no asignada:** the portion of the Savings reserve that is not assigned to a Savings goal. It can cover an exhausted Available balance or be assigned to a goal through an explicit user action.
 - **Financial reflection/Reflexión financiera:** reviewing spending patterns and priorities to make more intentional decisions.
-- **Money dial/Dial del dinero:** an area where the user finds meaningful value in spending and may intentionally choose to spend more.
 - **AI Companion/Asistente de IA:** an optional conversational assistant that explains recorded data, supports reflection, and helps users brainstorm goals.
 
 The B/U/C lens is used as follows:
@@ -71,7 +70,7 @@ The B/U/C lens is used as follows:
 - **Usage/Consumo:** expenses that change according to consumption, such as electricity, water, gas, or mobile data.
 - **Choice/Elección:** spending the user can increase, reduce, replace, or stop, such as entertainment, shopping, eating out, or flexible subscriptions.
 
-The reflective context tags are optional. They do not replace normal expense categories or act as a moral score. They are used as follows:
+The reflective context tags are optional. They do not replace normal expense categories or act as a moral score. Each expense can have at most one tag. They are used as follows:
 
 - **Need/Necesidad:** necessary for basic wellbeing or functioning.
 - **Love/Amor:** creates lasting value or joy.
@@ -104,11 +103,11 @@ Users can optionally create and manage repeated financial commitments separately
 
 ### Layer 6: Richer spending context
 
-Users can add more meaning to their records through expense categories, B/U/C classification, and optional reflective context tags. They can also identify their personal Money dials: the areas where spending creates meaningful value for them. This layer enriches analytics and supports reflection but is not required for basic tracking.
+Users can add more meaning to their expenses through the required general expense category, an optional B/U/C classification, and an optional reflective context tag. These fields enrich analytics and give the AI Companion more context for reflection, but they are not required for basic tracking. Recurring commitments support the same optional classifications and tags. [Read more](#layer-6-extended-richer-spending-context).
 
 ### Layer 7: AI Companion
 
-The AI Companion is an optional conversational tool that uses the user's application data to answer questions, explain patterns, compare periods, brainstorm savings goals, and support reflection. It should distinguish facts from suggestions, explain the period and data behind an answer, and never change records or make decisions without explicit user action.
+The AI Companion is an optional conversational tool that uses the user's application data, including available spending classifications and reflective context, to answer questions, explain patterns, compare periods, brainstorm savings goals, and support reflection. It should distinguish facts from suggestions, explain the period and data behind an answer, and never assign classifications, change records, or make decisions without explicit user action.
 
 The AI Companion is not required for the application to work. AI-assisted income and expense entry belongs to Layer 1 and must not block the manual entry flow.
 
@@ -132,13 +131,13 @@ The view can compare the current month with the previous month and with the same
 
 Analytics distinguishes recorded recurring-commitment payments from expected Recurring commitments. Variable commitment payments remain marked as Estimated until the user updates the generated record with the actual amount. Yearly or prepaid commitments can remain visible through a Coverage period note without creating new expenses during the covered months.
 
-Filters and search update both the transaction list and the displayed metrics and charts. Users can filter by income or expense, One-time expense, Fixed commitment, Variable commitment, category, B/U/C classification, reflective context tag, and date. Text search can match a named recurring commitment, notes, category, or reflective context tag. Users can edit or delete records here, with a warning when a change may recalculate a past month and following balances.
+Filters and search update both the transaction list and the displayed metrics and charts. Users can filter by income or expense, One-time expense, Fixed commitment, Variable commitment, category, B/U/C classification, reflective context tag, and date. Selecting a B/U/C classification or reflective context tag excludes records without that selected context; without a context filter, all records remain visible. Text search can match a named recurring commitment, notes, category, or reflective context tag. Users can edit or delete records here, including adding, changing, or removing optional classifications and tags, with a warning when a change may recalculate a past month and following balances.
 
-The view may include short, deterministic insight messages based on the selected data. These messages describe patterns without making recommendations. Empty periods or breakdowns show a brief explanation rather than being presented as zero-value financial results.
+The view may include short, deterministic insight messages based on the selected data. These messages describe patterns without making recommendations. Context-based insights analyze only records that contain the relevant B/U/C classification or reflective context tag. Empty periods or breakdowns show a brief explanation rather than being presented as zero-value financial results.
 
 ### Recurring Commitments
 
-A separate management view for adding and editing Recurring commitments. Users can set the Fixed commitment or Variable commitment type, expected amount, Payment frequency, schedule, optional Coverage period, category, B/U/C classification, reflective context tag, start date, end date, or payment limit. The view shows each commitment's status, next payment occurrence, expected monthly and yearly impact, and active-coverage note when applicable.
+A separate management view for adding and editing Recurring commitments. Users can set the Fixed commitment or Variable commitment type, expected amount, Payment frequency, schedule, optional Coverage period, category, B/U/C classification, reflective context tag, start date, end date, or payment limit. B/U/C classification and reflective context tags are optional, and users can add, change, or remove them later from the same view. The view shows each commitment's status, next payment occurrence, expected monthly and yearly impact, and active-coverage note when applicable.
 
 Users can pause, reactivate, cancel, or archive Recurring commitments from this view. Changes affect future generated expense records only. Existing records remain in the Transaction history and can be edited or deleted there.
 
@@ -148,7 +147,7 @@ A management and progress view for creating, editing, pausing, completing, cance
 
 ### AI Companion
 
-A conversational view for asking questions about financial activity, exploring patterns, reflecting on priorities, and brainstorming goals. It can offer suggested prompts based on the deterministic metrics and insight messages available in Transactions and Analytics, including questions about expected Recurring commitments, recorded recurring-commitment payments, Variable commitment estimates, or Coverage periods. The AI Companion may explain or help the user reflect on those patterns, but the underlying calculations remain visible and deterministic. It must not change records or make financial decisions without explicit user action.
+A conversational view for asking questions about financial activity, exploring patterns, reflecting on priorities, and brainstorming goals. It can use available B/U/C classifications and reflective context tags alongside the deterministic metrics and insight messages available in Transactions and Analytics. It may explain or help the user reflect on patterns such as Choice spending associated with a particular category or Need-tagged expenses during a selected period. It must not assign classifications or tags, change records, or make financial decisions without explicit user action. The underlying calculations remain visible and deterministic.
 
 ### Settings
 
@@ -193,7 +192,7 @@ It should also provide general income categories such as:
 - Interest or other income;
 - Other.
 
-Users should be able to add, rename, or deactivate categories later. Existing transaction history should remain understandable if a category is changed or deactivated.
+Users should be able to add or deactivate categories later. Existing transaction history should remain understandable if a category is deactivated.
 
 The quick-add experience should make one-time expense recording easy, whether the user enters the fields manually or approves an AI-generated draft. The initial forms do not include B/U/C classification, recurring-commitment management, fixed or variable commitment types, or reflective context tags. Those concepts, along with specialized transaction types, monthly calculations, analytics, savings goals, and richer context, belong to later layers. AI-assisted entry is available in Layer 1, while the broader AI Companion remains an optional later-layer experience.
 
@@ -469,6 +468,71 @@ The Recurring Commitments view lists the user's commitments, their status, Payme
 Users can add, edit, pause, reactivate, cancel, and archive Recurring commitments from this view. They can also update the expected amount of a Variable commitment, manage its Payment frequency, and change its schedule. When a Coverage period applies, it stays aligned with the Payment frequency. Editing a commitment does not silently modify past generated records.
 
 The view may show an active-coverage note for commitments paid in advance, such as “Paid until March 2027.” This note communicates that the commitment remains relevant without treating the covered months as new expenses.
+
+### Layer 6 extended: Richer spending context
+
+Layer 6 adds optional context to spending so users can reflect on what their expenses represent and identify patterns that are not visible through categories alone. The context is descriptive rather than judgmental. It does not change the cashflow, savings, or balance calculations, and it is not required to record an expense.
+
+#### Categories remain required
+
+Every income and expense record continues to use one general category from Layer 1. The category is the only required classification. Users can use **Other** when no available category describes the record. They can add new categories or deactivate existing categories from Settings, but they cannot rename the existing categories. Deactivating a category does not remove it from existing records or make their history unreadable.
+
+Layer 6 does not replace the category with a more personal label. B/U/C classification and reflective context tags add context alongside the general category.
+
+#### B/U/C classification
+
+An expense may optionally receive one B/U/C classification:
+
+- **Bill:** a fixed commitment such as rent, a mortgage, or an installment payment;
+- **Usage:** an expense that changes according to consumption, such as electricity, water, gas, or mobile data; or
+- **Choice:** spending the user can increase, reduce, replace, or stop, such as entertainment, shopping, eating out, or flexible subscriptions.
+
+The classification is optional and remains separate from the expense category. For example, an expense can be categorized as Food and classified as Choice. Users can add, change, or remove the classification when reviewing an existing expense.
+
+#### Reflective context tags
+
+An expense may optionally receive one reflective context tag. The available tags are fixed and cannot be renamed or edited by the user:
+
+- **Need:** necessary for basic wellbeing or functioning;
+- **Love:** creates lasting value or joy;
+- **Like:** creates temporary enjoyment; or
+- **Want:** mainly immediate gratification.
+
+Reflective context tags add personal meaning to an expense. They do not replace the general category, represent a moral score, or determine whether the expense was right or wrong. Users can add, change, or remove a tag when reviewing an existing expense.
+
+An expense can have both one B/U/C classification and one reflective context tag. For example, a Food expense can be classified as Choice and tagged Love. Records can also have only one of these optional fields or neither of them.
+
+#### Entry and editing
+
+The manual expense form may include the optional B/U/C classification and reflective context tag, but the user can leave both fields empty. The AI-assisted entry methods from Layer 1 interpret only the required category for a proposed income or expense. They do not assign B/U/C classifications or reflective context tags. The user can add those fields while reviewing the proposed record or later from the Transaction history.
+
+Adding, changing, or removing context does not alter the amount, date, category, or cashflow calculations. If the user edits other fields on a past record at the same time, the existing recalculation warning applies.
+
+#### Recurring commitments
+
+Recurring commitments accept the same optional B/U/C classification and reflective context tag as one-time expenses. Users can set these fields when creating a commitment and add, change, or remove them later from the Recurring Commitments view.
+
+When a Recurring commitment creates a generated expense record, the record receives the commitment's current category, B/U/C classification, and reflective context tag. Changes to a commitment affect future generated records only. Existing generated records retain their current values and can be edited from the Transaction history.
+
+The AI-assisted entry methods must not create or modify these classifications when proposing an income or expense. A user remains responsible for adding context to a generated or manually entered record.
+
+#### Filters and contextual analytics
+
+Transactions and Analytics supports filters for B/U/C classification and reflective context tags. When the user selects a classification or tag filter, records without the selected context are excluded from the transaction list, metrics, charts, and insight messages. Without a context filter, records with and without optional context remain visible together.
+
+Context-based breakdowns analyze only records that contain the relevant context. For example, the B/U/C breakdown uses expenses with a B/U/C classification, and the reflective-context breakdown uses expenses with a reflective context tag. Records without the relevant field are not placed into an “Unclassified” group and do not affect that breakdown. If no records in the selected period contain the relevant context, the view shows an empty state while the remaining analytics remain available.
+
+The optional context fields can be combined with each other and with expense categories. Users can explore patterns such as Choice spending within Food, Need-tagged expenses within Health, or expenses that match a category, a B/U/C classification, and a reflective context tag at the same time. Filtered metrics and charts must make clear that they represent the selected subset rather than the user's full finances.
+
+#### Deterministic insights and the AI Companion
+
+The deterministic insight messages from Layer 3 expand to use B/U/C classifications and reflective context tags when the selected data contains them. These insights describe patterns without judging the user's choices or recommending a classification. They analyze only records containing the relevant context and do not treat missing tags as a financial result.
+
+The AI Companion can use categories, B/U/C classifications, reflective context tags, and the user's other recorded data to explain patterns and support financial reflection. It may help the user think about priorities, compare contextual spending across periods, or explore what their records show. It must not assign, suggest, or silently add B/U/C classifications or reflective context tags, and it must not change records or make decisions without explicit user action.
+
+#### Layer 6 boundaries
+
+Layer 6 does not include customizable reflective tags, multiple B/U/C classifications per expense, automatic tag assignment, or Money dials. It does not make context mandatory and does not use B/U/C or reflective tags to judge spending, enforce budgets, or alter savings allocations. Recommendations and conversational interpretation remain responsibilities of the optional AI Companion in Layer 7.
 
 ## Boundaries
 
