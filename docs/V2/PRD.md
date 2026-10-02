@@ -41,10 +41,12 @@ These concepts should be used consistently across the product and its documentat
 
 - **Income/Ingresos:** money received during a specific period.
 - **One-time expense/Gasto puntual:** an individual transaction entered through the quick expense flow.
-- **Transaction history/Historial de transacciones:** the complete record of income and one-time expenses across months.
+- **Transaction history/Historial de transacciones:** the complete record of income, one-time expenses, and recorded recurring-commitment payments across months.
 - **Recurring commitment/Pago recurrente:** a repeated financial obligation, such as a subscription, rent, utility, loan, or installment.
 - **Fixed commitment/Pago fijo:** a recurring obligation with a predictable amount.
 - **Variable commitment/Pago variable:** a recurring obligation whose amount changes, such as electricity or water.
+- **Payment frequency/Frecuencia de pago:** how often a Recurring commitment is paid, such as monthly, every X months, or yearly.
+- **Coverage period/Periodo cubierto:** the period of service or access provided by one payment. In V2, it normally matches the Payment frequency. It is useful for subscriptions, memberships, insurance, and other prepaid services, but may not apply to commitments such as rent or utilities.
 - **Cashflow/Flujo de caja:** the movement of money into and out of the user's finances during a selected month or date range.
 - **B/U/C classification:** Bill, Usage, or Choice spending.
 - **Expense category:** a descriptive group such as Food, Health, Travel, Transport, or Entertainment.
@@ -98,7 +100,7 @@ Users can create multiple short-, medium-, and long-term Savings goals with targ
 
 ### Layer 5: Recurring commitments
 
-Users can optionally create and manage repeated financial commitments separately from one-time expenses. These may be fixed or variable and may represent subscriptions, memberships, essential bills, utilities, loans, or installment purchases. The application shows their expected monthly and yearly impact and avoids double-counting when an actual payment is recorded.
+Users can optionally create and manage repeated financial commitments separately from one-time expenses. These may be fixed or variable and may represent subscriptions, memberships, essential bills, utilities, loans, or installment purchases. Active commitments appear as upcoming records in the current month, affect Money left to spend, and become linked expense records on their scheduled dates. The application supports an optional Coverage period aligned with the Payment frequency, shows the expected monthly and yearly impact, supports pausing, cancelling, and archiving, and avoids double-counting when an actual payment is recorded. [Read more](#layer-5-extended-recurring-commitments).
 
 ### Layer 6: Richer spending context
 
@@ -116,15 +118,19 @@ These views describe the main areas of the application from the user's perspecti
 
 ### Monthly Dashboard
 
-The default private-area view for the active calendar month. It displays income, one-time expenses, recurring commitments, Money left to spend, Available balance, the total Savings reserve, and recent records. It also shows whether the Goal allocation is active, the desired Goal allocation for the month, and the amount actually reserved from income so far. The Monthly result and monthly savings allocation remain calculation values rather than primary dashboard metrics.
+The default private-area view for the active calendar month. It displays Income, One-time expenses, expected Recurring commitments, recorded recurring-commitment payments, Money left to spend, Available balance, the total Savings reserve, and recent records. Expected commitments appear as low-opacity records from the beginning of the month, while generated expense records appear normally once their scheduled date arrives. Money left to spend includes expected commitments, including the expected amount for Variable commitments.
 
-The desired Goal allocation can be €0 when switched off, the amount defined by the Savings goal plan, or the maximum amount supported by the month's cashflow. The reserved amount can remain €0 until income is recorded and updates as income is added. Selecting the total Savings reserve opens the Savings Goals view with the individual goals and their progress. The dashboard provides quick access to add one-time expenses and income manually or through AI-assisted entry methods, including natural-language, receipt image, and voice input.
+The dashboard also shows whether the Goal allocation is active, the desired Goal allocation for the month, and the amount actually reserved from income so far. The Monthly result and monthly savings allocation remain calculation values rather than primary dashboard metrics.
+
+The desired Goal allocation can be €0 when switched off, the amount defined by the Savings goal plan, or the maximum amount supported by the month's cashflow. The reserved amount can remain €0 until income is recorded and updates as income is added. Selecting the total Savings reserve opens the Savings Goals view with the individual goals and their progress. The dashboard provides quick access to add One-time expenses and Income manually or through AI-assisted entry methods, including natural-language, receipt image, and voice input. Recurring commitments are added and managed from the separate Recurring Commitments view.
 
 ### Transactions and Analytics
 
 A full-history view for exploring the Transaction history across any selected period. The current calendar month is selected by default, with options for a specific month, quarter, year, custom date range, or all history. It combines headline metrics, charts, category breakdowns, search, filters, and the transaction list so users can review income, expenses, Cashflow, Savings reserve changes, and Savings goal progress when available.
 
-The view can compare the current month with the previous month and with the same month in the previous year. Comparisons use the current month's provisional Monthly result and the final Monthly result for closed months. Money left to spend is shown for the active month but is not used as a historical comparison metric. Expected recurring commitments appear separately from recorded expenses so they are visible without being double-counted.
+The view can compare the current month with the previous month and with the same month in the previous year. Comparisons use the current month's provisional Monthly result and the final Monthly result for closed months. Money left to spend is shown for the active month but is not used as a historical comparison metric. Expected Recurring commitments appear separately from recorded recurring-commitment payments, so they remain visible without being double-counted.
+
+Analytics distinguishes recorded recurring-commitment payments from expected Recurring commitments. Variable commitment payments remain marked as Estimated until the user updates the generated record with the actual amount. Yearly or prepaid commitments can remain visible through a Coverage period note without creating new expenses during the covered months.
 
 Filters and search update both the transaction list and the displayed metrics and charts. Users can filter by income or expense, One-time expense, Fixed commitment, Variable commitment, category, B/U/C classification, reflective context tag, and date. Text search can match a named recurring commitment, notes, category, or reflective context tag. Users can edit or delete records here, with a warning when a change may recalculate a past month and following balances.
 
@@ -132,7 +138,9 @@ The view may include short, deterministic insight messages based on the selected
 
 ### Recurring Commitments
 
-A management view for adding, editing, pausing, cancelling, and archiving recurring commitments. It shows their current status and expected monthly or yearly impact.
+A separate management view for adding and editing Recurring commitments. Users can set the Fixed commitment or Variable commitment type, expected amount, Payment frequency, schedule, optional Coverage period, category, B/U/C classification, reflective context tag, start date, end date, or payment limit. The view shows each commitment's status, next payment occurrence, expected monthly and yearly impact, and active-coverage note when applicable.
+
+Users can pause, reactivate, cancel, or archive Recurring commitments from this view. Changes affect future generated expense records only. Existing records remain in the Transaction history and can be edited or deleted there.
 
 ### Savings Goals
 
@@ -140,7 +148,7 @@ A management and progress view for creating, editing, pausing, completing, cance
 
 ### AI Companion
 
-A conversational view for asking questions about financial activity, exploring patterns, reflecting on priorities, and brainstorming goals. It can offer suggested prompts based on the deterministic metrics and insight messages available in Transactions and Analytics, such as asking why a category changed or what contributed to a difference between periods. The AI Companion may explain or help the user reflect on those patterns, but the underlying calculations remain visible and deterministic. It must not change records or make financial decisions without explicit user action.
+A conversational view for asking questions about financial activity, exploring patterns, reflecting on priorities, and brainstorming goals. It can offer suggested prompts based on the deterministic metrics and insight messages available in Transactions and Analytics, including questions about expected Recurring commitments, recorded recurring-commitment payments, Variable commitment estimates, or Coverage periods. The AI Companion may explain or help the user reflect on those patterns, but the underlying calculations remain visible and deterministic. It must not change records or make financial decisions without explicit user action.
 
 ### Settings
 
@@ -300,6 +308,94 @@ The rules for this layer are:
 - **Withdrawal:** after a goal withdrawal, the application recalculates the suggested contribution needed to meet the original deadline.
 - **Goal changes:** the user can pause, cancel, archive, or replace a goal. Past contribution history remains intact, and the application does not change the target or deadline silently.
 - **Realistic planning:** when the recalculated contribution is not realistic, the application can show alternatives such as extending the deadline, lowering the target, or pausing contributions.
+
+### Layer 5 extended: Recurring commitments
+
+Layer 5 lets users define and manage Recurring commitments and see their expected effect before each payment is recorded. A Recurring commitment is managed separately from the quick One-time expense form. The user creates it from the Recurring Commitments view, and the application creates linked expense records in the Transaction history according to its schedule.
+
+#### Commitment setup
+
+Each Recurring commitment has an internal identifier that remains stable even when the user changes its name. This identifier links all generated expense records to the same commitment. Names do not need to be globally unique. Renaming a commitment updates the displayed name for its linked records without breaking their history.
+
+The initial commitment fields are:
+
+- name;
+- fixed or variable commitment type;
+- expected amount;
+- Payment frequency;
+- scheduled day or date;
+- start date;
+- optional Coverage period;
+- optional end date or maximum number of payments;
+- expense category;
+- B/U/C classification;
+- optional Need, Love, Like, or Want reflective context tag; and
+- optional notes.
+
+The initial Payment frequency options are monthly, every X months, and yearly. Yearly is a separate option from every X months, even though both may produce a twelve-month interval. The application uses the selected date as the basis for future payment occurrences.
+
+Payment frequency determines when the application creates an expense record. When a Coverage period applies, it matches the Payment frequency. For example, a monthly subscription covers one month, a payment every three months covers three months, and a yearly membership covers twelve months. A commitment such as rent or electricity can have no Coverage period. Payment plans where the payment interval and coverage period differ are outside the initial V2 scope.
+
+If a monthly commitment is scheduled for a day that does not exist in a particular month, the application uses the last day of that month. For example, a commitment scheduled for the 31st is applied on February 28th or 29th and April 30th. Future occurrences continue to use the original schedule rather than permanently changing the commitment's selected day.
+
+The user can change the amount, date, Payment frequency, category, classification, context tag, notes, end date, or payment limit. When a Coverage period applies, it updates with the Payment frequency so the two remain aligned. Changes to the Recurring commitment affect future occurrences only. Existing generated records retain their current values and can be edited individually from the Transaction history.
+
+#### Fixed and variable commitments
+
+- **Fixed commitment:** the expected amount is known and is used for each occurrence until the user changes the commitment amount.
+- **Variable commitment:** the user enters an expected amount. The application uses that amount for projections and calculations until the user edits the generated record with the actual amount.
+
+A variable generated record remains visibly marked as **Estimated** until its amount is changed by the user. The user is responsible for keeping actual variable amounts accurate. Once the amount is confirmed, the record is displayed like a normal generated expense, although it remains linked to the recurring commitment and can still be edited later.
+
+#### Scheduled and generated records
+
+Active Recurring commitments produce linked expense records on their scheduled dates. If the application was not open on the scheduled date, it creates the missed record when the user next opens the application and preserves the original scheduled date.
+
+The application also displays the current month's upcoming occurrences from the beginning of that month. These appear as low-opacity records marked **Upcoming** or **Expected**, so the user can see the commitments that will affect the month even before their scheduled dates arrive. Upcoming records use the expected amount, including the estimate for variable commitments.
+
+When the scheduled date arrives, the upcoming record becomes a normal generated expense. The generated record is clearly identified as having been created automatically and contains a link to its recurring commitment.
+
+If a commitment is created with a start date in the past, the application generates all applicable missed records from that start date. These records use the original scheduled dates. Variable missed records use the expected amount and remain marked as Estimated until the user corrects them. Creating past records may recalculate affected historical months and following balances, so the application shows the existing recalculation warning before applying the change.
+
+A commitment paid in one transaction is recorded at its full actual amount in the month in which the payment occurs. If it has a Coverage period, the Recurring commitment remains visible during that period with a note such as “Paid until March 2027.” It does not create another expense or reduce Money left to spend until the next payment is due. This supports yearly memberships, quarterly subscriptions, and other prepaid services without treating the covered months as new expenses.
+
+#### Calculations and double-counting
+
+Expected recurring commitments are included in monthly planning before their payment date. Money left to spend is calculated as:
+
+`Income − One-time expenses − recorded recurring-commitment payments − expected recurring commitments − Goal allocation`
+
+Expected variable commitments use their current estimated amount. This means Money left to spend can be negative when commitments are expected but income has not yet been recorded for the month.
+
+Expected Recurring commitments are shown separately from recorded expenses in analytics and must not be added to recorded expenses a second time after their payment becomes a generated record. Analytics distinguishes:
+
+- recorded recurring-commitment payments;
+- expected Recurring commitments;
+- estimated Variable commitment payments; and
+- total expected commitment amount.
+
+The same commitment identifier prevents a generated record from being duplicated. If the user deletes an upcoming or generated occurrence, the application records that this specific occurrence was intentionally removed and does not recreate it. Future occurrences continue according to the commitment's schedule.
+
+The One-time expense form does not include a commitment name field. Users can still enter notes such as “Spotify,” but the application does not automatically treat that One-time expense as part of a Recurring commitment. Users manage Recurring commitments only through the Recurring Commitments view.
+
+#### Commitment status and lifecycle
+
+- **Active:** the application displays expected occurrences, includes them in planning, and creates generated expense records according to the schedule.
+- **Paused:** the application stops creating future generated expense records and removes future expected amounts from planning. Existing records remain visible. The user can reactivate the commitment later without losing its history.
+- **Cancelled:** the application stops future generated expense records and future planning while keeping the commitment and its history visible.
+- **Archived:** the commitment is hidden from the normal management list. Its historical records and financial effects remain available in transaction history and analytics.
+
+Pausing or cancelling a Recurring commitment before its scheduled date prevents that occurrence from being created. Pausing or cancelling it after an occurrence has already been created does not remove that existing record. Reactivating a commitment resumes future occurrences according to its current schedule. The user can change the date or other schedule details when the external subscription or payment date changes; those changes affect future occurrences only.
+
+An active commitment stops automatically when its optional end date is reached or its maximum number of payments has been generated. The user may also pause or cancel a commitment manually when they decide to stop or temporarily suspend it.
+
+#### Recurring Commitments view
+
+The Recurring Commitments view lists the user's commitments, their status, Payment frequency, Coverage period when applicable, expected amount, next payment occurrence, and expected monthly and yearly impact. It shows separate totals for expected Fixed commitments and Variable commitments.
+
+Users can add, edit, pause, reactivate, cancel, and archive Recurring commitments from this view. They can also update the expected amount of a Variable commitment, manage its Payment frequency, and change its schedule. When a Coverage period applies, it stays aligned with the Payment frequency. Editing a commitment does not silently modify past generated records.
+
+The view may show an active-coverage note for commitments paid in advance, such as “Paid until March 2027.” This note communicates that the commitment remains relevant without treating the covered months as new expenses.
 
 ## Boundaries
 
