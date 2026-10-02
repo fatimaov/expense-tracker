@@ -90,7 +90,7 @@ The application groups transactions by calendar month and focuses the dashboard 
 
 ### Layer 3: Analytics and awareness
 
-The application turns the raw transaction history into useful information. Users can review the full history through metrics, graphics, categories, filters, and search. Analytics also displays the savings reserve and how it changes across months.
+The application turns the raw transaction history into useful, descriptive information. The default view is the current calendar month, but users can select a specific month, quarter, year, custom date range, or all history. Users can review income, expenses, cashflow, savings, categories, and records through metrics, charts, filters, search, and short deterministic insight messages. Analytics also displays the Savings reserve and how it changes across months. [Read more](#layer-3-extended-analytics-and-awareness).
 
 ### Layer 4: Savings goals
 
@@ -122,7 +122,13 @@ The desired Goal allocation can be €0 when switched off, the amount defined by
 
 ### Transactions and Analytics
 
-A full-history view for exploring records across any selected period. It combines search, filters, metrics, categories, richer spending context, and visual summaries so users can compare Monthly results, spending patterns, and the Savings reserve over time. Users can edit or delete manually entered records here, with a notice when a change may recalculate a past month and following balances.
+A full-history view for exploring the Transaction history across any selected period. The current calendar month is selected by default, with options for a specific month, quarter, year, custom date range, or all history. It combines headline metrics, charts, category breakdowns, search, filters, and the transaction list so users can review income, expenses, Cashflow, Savings reserve changes, and Savings goal progress when available.
+
+The view can compare the current month with the previous month and with the same month in the previous year. Comparisons use the current month's provisional Monthly result and the final Monthly result for closed months. Money left to spend is shown for the active month but is not used as a historical comparison metric. Expected recurring commitments appear separately from recorded expenses so they are visible without being double-counted.
+
+Filters and search update both the transaction list and the displayed metrics and charts. Users can filter by income or expense, One-time expense, Fixed commitment, Variable commitment, category, B/U/C classification, reflective context tag, and date. Text search can match a named recurring commitment, notes, category, or reflective context tag. Users can edit or delete records here, with a warning when a change may recalculate a past month and following balances.
+
+The view may include short, deterministic insight messages based on the selected data. These messages describe patterns without making recommendations. Empty periods or breakdowns show a brief explanation rather than being presented as zero-value financial results.
 
 ### Recurring Commitments
 
@@ -134,7 +140,7 @@ A management and progress view for creating, editing, pausing, completing, cance
 
 ### AI Companion
 
-A conversational view for asking questions about financial activity, exploring patterns, reflecting on priorities, and brainstorming goals.
+A conversational view for asking questions about financial activity, exploring patterns, reflecting on priorities, and brainstorming goals. It can offer suggested prompts based on the deterministic metrics and insight messages available in Transactions and Analytics, such as asking why a category changed or what contributed to a difference between periods. The AI Companion may explain or help the user reflect on those patterns, but the underlying calculations remain visible and deterministic. It must not change records or make financial decisions without explicit user action.
 
 ### Settings
 
@@ -198,6 +204,86 @@ The rules for this layer are:
 - **Starting position:** users may provide an initial Available balance and an initial Savings reserve separately. In Layer 2, the initial Savings reserve is automatically treated as Unassigned reserve.
 - **Reserve transfer:** a user can explicitly transfer money between the Available balance and the Unassigned reserve. This is not recorded as income or an expense.
 - **Past changes:** editing or deleting a past transaction recalculates that month's Monthly result, monthly savings allocation, and the balances for following months.
+
+### Layer 3 extended: Analytics and awareness
+
+Layer 3 provides a descriptive view of the user's financial activity. It does not require AI and does not make recommendations, assign moral meaning to spending, or change records. Its calculations and factual insight messages should remain available when the AI Companion is unavailable.
+
+#### Periods and default view
+
+- **Default period:** the current calendar month.
+- **Available periods:** current month, a selected month, quarter, year, custom date range, and all history.
+- **Selected period:** all period-based metrics, charts, comparisons, and filtered records use the selected period unless a metric is explicitly identified as a current-state value.
+- **Current-state values:** Available balance, total Savings reserve, and current Savings goal progress describe the user's current position and are not treated as period totals.
+
+#### Headline metrics
+
+For the current month, analytics displays:
+
+- Income;
+- recorded expenses, including recorded recurring-commitment payments;
+- Money left to spend;
+- planned Goal allocation, when Savings goals are in use;
+- Reserved goal amount so far, when applicable;
+- Available balance;
+- total Savings reserve; and
+- savings rate.
+
+For other selected periods, the view prioritizes the period's income, expenses, Monthly result, monthly savings allocation or Goal allocation, and savings rate. Available balance and current Savings goal progress remain current-state values rather than being presented as amounts produced by the selected historical period.
+
+Expected recurring commitments are displayed separately from recorded expenses. They may contribute to a projected expense view but must not be added to recorded expenses before the payment is actually recorded. This prevents expected commitments from being double-counted.
+
+#### Savings metrics
+
+Analytics distinguishes money intentionally directed to the Savings reserve from positive money that remains in the Available balance.
+
+- **Planned savings rate:** the planned Goal allocation divided by income for the selected month, when a planned Goal allocation exists.
+- **Actual savings rate:** the amount actually added to the Savings reserve divided by income. For an active Savings goal, this uses the Reserved goal amount.
+- **Maximum allocation:** when the user selects the maximum supported allocation, the expected amount is the current positive Monthly result: income minus expenses. The expected savings rate updates as income or expenses change.
+- **Disabled allocation:** when savings allocation is disabled, the savings-rate value is shown as `—` with the note “No savings allocation”. A positive Monthly result may still increase the Available balance and is not counted as money saved to the Savings reserve.
+- **Active but unfunded allocation:** when allocation is active but no money has been reserved yet, the actual savings rate is 0%.
+- **Past periods:** analytics shows the planned allocation when one existed, the amount actually added to the Savings reserve or reserved for a Savings goal, and the resulting actual savings rate.
+
+The view may also show positive Available-balance growth separately so that users can distinguish cash retained for ordinary spending from money intentionally saved.
+
+#### Charts and breakdowns
+
+The initial V2 analytics view includes:
+
+- income versus expenses for the selected period, with monthly points when the range contains multiple months;
+- income and expenses by category;
+- each category's percentage of total income or total expenses for the selected period;
+- the B/U/C breakdown for expenses when classifications are available;
+- the Savings reserve trend across months; and
+- Savings goal progress and planned versus actual contributions when Savings goals are available.
+
+B/U/C classification and Need, Love, Like, and Want reflective context tags are optional. They can be defined and supported by analytics without being required for a transaction. If no records contain a classification or reflective context tag, the relevant breakdown shows an empty state and does not block the remaining analytics.
+
+#### Comparisons and factual insights
+
+Users can compare the current month with the previous month and with the same month in the previous year. Comparisons apply to the main month-level cashflow and savings metrics, including income, expenses, Monthly result, planned or actual savings amounts, and savings rate. For the active month, Monthly result is provisional and is calculated from the transactions recorded so far. For closed or historical months, Monthly result is the final result for that month. Money left to spend is an active-month value and is not used as a historical comparison metric. Available balance and Savings goal progress are not treated as period comparisons by default because they represent current-state values.
+
+Analytics may show short, deterministic insight messages based directly on the selected data, such as “Food represents 34% of your expenses this month” or “Expenses are €120 higher than last month”. These messages are descriptive only. They do not recommend actions, judge spending, or require the AI Companion. The AI Companion may later use the same metrics to answer questions or provide reflection through suggested prompts, but the underlying calculations remain deterministic and visible.
+
+#### Search, filters, and records
+
+Search and filters apply to both the transaction list and the metrics and charts generated from that list. The initial filter set should remain simple while supporting the data needed for later analysis:
+
+- income or expense;
+- expense type: One-time expense, Fixed commitment, or Variable commitment;
+- category;
+- B/U/C classification, when available;
+- Need, Love, Like, or Want reflective context tag, when available;
+- date or selected period; and
+- named recurring commitment, notes, category, or reflective context tag through text search.
+
+The filtered view makes clear that its metrics represent the filtered subset rather than the user's full finances. Users can edit or delete records from the transaction list. After confirmation, any affected analytics, monthly calculations, and following balances update consistently with the Layer 2 rules. Changes to past records should show the existing recalculation warning before they are applied.
+
+#### Empty states and V2 boundaries
+
+When a selected period or breakdown has insufficient data, the application shows an empty state with a short explanation of what is missing, such as “Add income or expenses to see this comparison.” Empty analytics states should not be treated as zero-value financial results.
+
+Export is outside the initial Layer 3 V2 scope. Recommendations, financial advice, and AI-generated interpretations also remain outside this layer.
 
 ### Layer 4 extended: Savings goals
 
