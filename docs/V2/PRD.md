@@ -96,7 +96,7 @@ The application turns the raw transaction history into useful, descriptive infor
 
 ### Layer 4: Savings goals
 
-Users can create multiple short-, medium-, and long-term Savings goals with targets, deadlines, and contribution plans. For the active month, they can choose no Goal allocation, the planned allocation, or the maximum amount supported by the month's cashflow. The Reserved goal amount is taken from that month's income, increases the goal and the Savings reserve, and reduces Money left to spend. Users can also transfer money from the Available balance to a goal or the Unassigned reserve. Goal progress, withdrawals, and changes to the plan remain visible and user-controlled. [Read more](#layer-4-extended-savings-goals).
+Users can create multiple Savings goals and define a target, deadline, and contribution plan for each one. Goals with a target and deadline receive an automatically calculated planned contribution. Goals without a deadline use a fixed monthly amount or a percentage of income and can show an estimated time to reach their target. For the active month, the user can choose no Goal allocation, the total planned allocation, or the maximum amount supported by the month's cashflow. At month close, the actual amount is distributed between goals by priority and increases the Savings reserve. Users can transfer money between the Available balance, the Unassigned reserve, and specific goals. Goal progress, withdrawals, and changes to the plan remain visible and user-controlled. [Read more](#layer-4-extended-savings-goals).
 
 ### Layer 5: Recurring commitments
 
@@ -144,7 +144,7 @@ Users can pause, reactivate, cancel, or archive Recurring commitments from this 
 
 ### Savings Goals
 
-A management and progress view for creating, editing, pausing, completing, cancelling, or archiving Savings goals. It shows each goal's progress, contribution plan, deadline, Goal allocation, and relationship to the Savings reserve. Users can change the active month's Goal allocation, make direct transfers, and withdraw from a goal without silently changing its future plan.
+A management and progress view for creating, editing, pausing, completing, cancelling, and archiving Savings goals. Each goal appears with its saved amount, target, progress bar, remaining amount, deadline or estimated completion time, planned contribution, current status, and contribution for the active month. The view also separates money assigned to goals from the Unassigned reserve and shows their relationship to the total Savings reserve. Users can change the active month's Goal allocation, make direct transfers, review contribution history, and withdraw from a goal without silently changing its target or deadline.
 
 ### AI Companion
 
@@ -295,19 +295,92 @@ Export is outside the initial Layer 3 V2 scope. Recommendations, financial advic
 
 ### Layer 4 extended: Savings goals
 
-The rules for this layer are:
+Layer 4 adds purpose-based saving on top of the Savings reserve. Users manage goals from the separate Savings Goals view, while the Monthly Dashboard shows the total Goal allocation and lets the user control the active month's amount.
 
-- **Savings goal:** a named purpose with a target amount, deadline, and contribution plan. Users can create multiple goals.
-- **Goal allocation:** the desired amount to reserve for a Savings goal during the active month.
-- **Current-month choices:** the user can set the Goal allocation to €0, use the planned allocation, or save the maximum positive amount supported by that month's cashflow. The Reserved goal amount is €0 until income is recorded and cannot exceed the available income for the month.
-- **Scope of changes:** changing the Goal allocation affects only the active month. It does not change the Savings goal's planned allocation for future months unless the user explicitly changes that plan.
-- **Progress:** the goal's saved amount, remaining amount, deadline, and progress update according to the actual Reserved goal amount.
-- **Direct transfer:** the user can move money from the Available balance to a Savings goal or the Unassigned reserve. This is separate from monthly income and expenses.
-- **Reserve ownership:** existing Unassigned reserve remains unassigned until the user explicitly assigns it to a Savings goal or transfers it to the Available balance. It is not automatically used to complete a goal.
-- **Deficit recovery:** once Savings goals are in use, the application does not automatically use the Unassigned reserve or withdraw money from a Savings goal. The user chooses whether to transfer Unassigned reserve money to the Available balance or explicitly withdraw money from a specific goal. A goal withdrawal reduces its progress and increases the remaining amount.
-- **Withdrawal:** after a goal withdrawal, the application recalculates the suggested contribution needed to meet the original deadline.
-- **Goal changes:** the user can pause, cancel, archive, or replace a goal. Past contribution history remains intact, and the application does not change the target or deadline silently.
-- **Realistic planning:** when the recalculated contribution is not realistic, the application can show alternatives such as extending the deadline, lowering the target, or pausing contributions.
+#### Goal setup and contribution plans
+
+A Savings goal has a name and can be one of the following:
+
+- **Target goal:** has a target amount and may have a deadline. It becomes Completed when its saved amount reaches the target.
+- **Open-ended goal:** has no target or deadline and continues to accumulate, such as a general emergency fund.
+
+Users can create multiple goals. A goal with a target can use either of these contribution plans when it does not have a deadline:
+
+- a fixed monthly amount; or
+- a percentage of the user's recorded monthly income.
+
+For a goal with a target and deadline, the application calculates the planned contribution automatically:
+
+`Remaining target amount ÷ months remaining`
+
+The application can show the estimated number of months or estimated completion date for a goal without a deadline. The estimate uses the goal's current contribution plan and updates when the saved amount, contribution plan, or income changes.
+
+When a percentage-based goal has no income history, the application does not estimate a completion time. It starts estimating after income is recorded. A goal without a recurring contribution plan can still receive direct transfers, but the application shows the remaining amount rather than an estimated completion time.
+
+The contribution plan is a planning value. The actual Reserved goal amount can be lower when the user has insufficient cashflow, turns the Goal allocation off, or records a deficit.
+
+#### Goal priority and monthly allocation
+
+The total planned Goal allocation is the sum of the planned contributions for all active goals. The Monthly Dashboard displays this total for the active month.
+
+For the active month, the user can choose:
+
+- **€0:** no money is reserved for goals during the month;
+- **planned allocation:** the application uses the total planned Goal allocation; or
+- **maximum:** the application reserves the maximum positive amount supported by the month's cashflow.
+
+The maximum supported amount is based on income, expenses, and expected Recurring commitments:
+
+`Maximum Goal allocation = max(0, income − expenses − expected Recurring commitments)`
+
+The Goal allocation is also limited by the money available from income for the month. It cannot create money or increase a deficit.
+
+When several goals are active, the application distributes the actual Reserved goal amount in this order:
+
+1. Goals with deadlines, ordered by the nearest deadline.
+2. Goals without deadlines.
+
+Within the same priority group, the application distributes money proportionally to each goal's planned contribution. For example, if two goals have planned contributions of €100 and €50, they receive two-thirds and one-third of the amount available to that group.
+
+When the user chooses the maximum amount, money above the total planned allocation goes first to the most urgent incomplete goal. When that goal reaches its target, the remaining amount goes to the next incomplete goal.
+
+Goals without deadlines receive their planned contribution when the user selects the planned allocation. They can also receive leftover money after deadline goals are funded when the user selects the maximum allocation. An open-ended goal without a target remains active and can continue receiving contributions.
+
+#### Month close and reserve ownership
+
+At month close, the actual Reserved goal amount is assigned to the applicable goals and increases both their saved amounts and the Savings reserve. The goal contribution history remains visible.
+
+If there are no active Savings goals, positive money directed to savings goes to the Unassigned reserve. If active goals receive less than the available positive result, the remaining amount also goes to the Unassigned reserve. When the user sets the active month's Goal allocation to €0, the positive Monthly result remains in the Available balance instead.
+
+The Unassigned reserve is not automatically assigned to a goal. The user can explicitly transfer it to a specific Savings goal or to the Available balance. Similarly, the user can transfer money from the Available balance to the Unassigned reserve or to a specific Savings goal. Transfers are separate from income, expenses, and goal contributions.
+
+Direct transfers increase a goal's saved amount immediately. They do not change the goal's target, deadline, or future contribution plan. When a goal reaches its target through monthly contributions or direct transfers, it becomes Completed automatically.
+
+#### Deficits and withdrawals
+
+When a month closes with a negative result, the application covers the deficit in this order:
+
+1. Available balance;
+2. Unassigned reserve; and
+3. a specific Savings goal only after the user explicitly chooses to withdraw from it.
+
+The application does not automatically withdraw money from a goal. If the Available balance and Unassigned reserve are insufficient, the user can transfer money from the Unassigned reserve, withdraw from a selected goal, reduce or pause a future contribution, or leave the Available balance negative.
+
+Withdrawing from a Savings goal reduces its saved amount and increases its remaining amount. The application recalculates the future contribution needed to meet the original deadline, but it does not change the target or deadline without the user's action. If the recalculated contribution is not realistic, the application shows alternatives such as extending the deadline, lowering the target, reducing the contribution, or pausing the goal.
+
+#### Goal lifecycle
+
+Users can pause, reactivate, complete, cancel, or archive goals:
+
+- **Active:** the goal participates in planning and allocation.
+- **Paused:** the goal remains visible but does not receive new planned contributions until reactivated.
+- **Completed:** the goal has reached its target and remains visible with its progress at 100%. The user can archive it or withdraw money from it later.
+- **Cancelled:** the goal stops receiving contributions and remains visible with its contribution history.
+- **Archived:** the goal is hidden from the normal active list, while its history and financial effects remain available.
+
+Completing a goal does not automatically move or spend its money. If the user later wants to use the money, they withdraw or transfer it to the Available balance and record the actual purchase as a normal expense. The expense is not automatically linked to the goal. Any remaining money stays assigned to the goal until the user transfers it elsewhere.
+
+Changing a goal's target, deadline, or contribution plan affects future planning. Past contribution history remains intact, and the application does not change the target or deadline silently.
 
 ### Layer 5 extended: Recurring commitments
 
