@@ -155,7 +155,35 @@ The view may show starter questions such as “Summarize my spending this month,
 
 ### Settings
 
-A place for personal preferences, categories, starting Available balance, starting Savings reserve, transfers between the Available balance and the Unassigned reserve, and other account-level configuration.
+An account-level view for setting up the user's starting position, managing categories, choosing personal preferences, and making explicit reserve transfers. Settings clearly distinguishes values that affect financial calculations from display preferences and actions that change balances without creating transaction records.
+
+#### Starting balances and reserve
+
+The user can provide or edit a starting Available balance and a starting Savings reserve. The starting Savings reserve is treated as Unassigned reserve until the user explicitly assigns money to a Savings goal. Settings shows the two starting values separately and explains how they relate to the Available balance, Savings reserve, and Unassigned reserve.
+
+Changing a starting balance is an account-level correction. Before it is saved, Settings explains that it may recalculate the Available balance, Savings reserve, and following monthly results. It does not create an Income or One-time expense record. The view preserves the distinction between money available for ordinary spending and money intentionally kept in the Savings reserve, including when a later calculation makes the Available balance negative.
+
+#### Reserve transfers
+
+The user can explicitly transfer money between the Available balance and the Unassigned reserve. Settings supports both directions, shows the source and destination balances before confirmation, and prevents a transfer from exceeding the selected source balance. Transfers are separate from Income, One-time expenses, recorded Recurring-commitment payments, and Savings goal contributions. They do not appear in Transaction history and do not change a transaction's category or date.
+
+After a transfer, Settings confirms the change and immediately shows the updated Available balance, Unassigned reserve, and total Savings reserve. Transfers to a specific Savings goal belong in Savings Goals, where the goal's saved amount and contribution history are visible.
+
+#### Categories
+
+Settings lists the active and deactivated general categories used by Income and One-time expense forms. The initial One-time expense categories are Food and groceries, Housing and bills, Transport and fuel, Health, Travel and accommodation, Education, Entertainment, Shopping and personal care, and Other. The initial Income categories are Salary or wages, Freelance or contract work, Business income, Scholarship or study support, Benefits or pension, Gift or family support, Interest or other income, and Other.
+
+The user can add categories and deactivate existing categories, but cannot rename the existing categories. The fixed reflective context tags Need, Love, Like, and Want are managed by the product and cannot be edited in Settings. Deactivating a category does not remove it from Transaction history or make historical records unreadable. Deactivated categories are not offered for new records, while records that already use them remain editable and understandable.
+
+#### Preferences and account configuration
+
+Settings provides personal preferences that do not alter financial calculations, such as the default period used by Transactions and Analytics, display density, and confirmation preferences. It distinguishes these preferences from starting balances and reserve transfers, which do affect account calculations.
+
+The view may include account-level actions such as signing out and managing account details. It does not expose controls for bank or card connections, shared household finances, investments, tax reporting, or professional financial advice, which are outside V2 scope. Any setting that is not yet connected to a persisted data service is labelled clearly and does not imply that it has changed application calculations.
+
+#### Settings safeguards
+
+Settings uses supportive, non-judgmental language and explains the effect of consequential changes before confirmation. Saving preferences and category changes does not silently modify transaction amounts, dates, notes, B/U/C classifications, reflective context tags, Recurring commitments, Savings goals, or historical records. Changes to starting balances and reserve transfers provide a clear confirmation or success state and remain visible through the resulting balance changes.
 
 ## Detailed layer explanations
 
