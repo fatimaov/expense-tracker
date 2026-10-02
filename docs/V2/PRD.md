@@ -48,7 +48,7 @@ These concepts should be used consistently across the product and its documentat
 - **Payment frequency/Frecuencia de pago:** how often a Recurring commitment is paid, such as monthly, every X months, or yearly.
 - **Coverage period/Periodo cubierto:** the period of service or access provided by one payment. In V2, it normally matches the Payment frequency. It is useful for subscriptions, memberships, insurance, and other prepaid services, but may not apply to commitments such as rent or utilities.
 - **Cashflow/Flujo de caja:** the movement of money into and out of the user's finances during a selected month or date range.
-- **B/U/C classification:** Bill, Usage, or Choice spending.
+- **B/C/U classification:** Bill, Cash/Choice, or Usage/Utilities spending.
 - **Expense category:** a descriptive group such as Food, Health, Travel, Transport, or Entertainment.
 - **Reflective context tags/Etiquetas de contexto:** an optional Need, Love, Like, or Want tag that adds personal meaning and emotional context to an expense. An expense can have at most one reflective context tag.
 - **Month:** a selected calendar month, with the current month shown by default.
@@ -64,18 +64,19 @@ These concepts should be used consistently across the product and its documentat
 - **Financial reflection/Reflexión financiera:** reviewing spending patterns and priorities to make more intentional decisions.
 - **AI Companion/Asistente de IA:** an optional conversational assistant that explains recorded data, supports reflection, and helps users brainstorm goals.
 
-The B/U/C lens is used as follows:
+### B/C/U spending model
 
-- **Bill/Factura:** fixed commitments such as rent, a mortgage, or an installment payment.
-- **Usage/Consumo:** expenses that change according to consumption, such as electricity, water, gas, or mobile data.
-- **Choice/Elección:** spending the user can increase, reduce, replace, or stop, such as entertainment, shopping, eating out, or flexible subscriptions.
+The B/C/U model is a simple way to understand spending by the amount of control the user has over it. **B — Bills** are fixed obligations that must be paid, such as rent, a mortgage, loan payments, or other commitments where non-payment can create serious consequences. **C — Cash/Choice** covers spending the user can choose to increase, reduce, replace, or stop, such as eating out, entertainment, shopping, grooming, or flexible subscriptions. **U — Usage/Utilities** covers costs that fluctuate with consumption, such as electricity, water, gas, or mobile data.
 
-The reflective context tags are optional. They do not replace normal expense categories or act as a moral score. Each expense can have at most one tag. They are used as follows:
+The model is descriptive, not judgmental, and it does not replace normal expense categories. Its purpose is to help the user see where money is going and decide what kind of problem they may have: if most spending is in Bills or Usage, the issue may be that income is not sufficient for essential costs; if most spending is in Cash/Choice, the user may have more opportunities to adjust spending. The AI Companion can explain this lens and summarize recorded classifications, but it must not assign classifications or treat them as moral judgments.
 
-- **Need/Necesidad:** necessary for basic wellbeing or functioning.
-- **Love/Amor:** creates lasting value or joy.
-- **Like/Gusto:** creates temporary enjoyment.
-- **Want/Deseo:** mainly immediate gratification.
+### Need/Love/Like/Want reflective model
+
+Need/Love/Like/Want is an optional reflective model for adding personal meaning to an expense that has already been recorded. It is separate from both the expense category and the B/C/U classification. **Need** means the expense was necessary for the user's wellbeing or functioning. **Love** means it is expected to create lasting value or joy. **Like** means it creates temporary enjoyment. **Want** means it is mainly about immediate gratification.
+
+The model is a reflection prompt, not a ranking of good and bad spending. A user may apply one optional tag to an existing expense, change it later, or leave it blank. The meaning of a tag is personal: the same type of expense may be a Need, Love, Like, or Want for different users or in different circumstances.
+
+The AI Companion may explain the four tags, summarize patterns among expenses that already have them, and help the user reflect on how spending relates to their priorities. It must not infer, assign, recommend, or silently change a tag. It should describe the selected period and acknowledge when untagged expenses are excluded from a reflective summary. It must never use the tags to shame the user, judge a purchase, or present one type of spending as universally more responsible than another.
 
 ## Core features
 
