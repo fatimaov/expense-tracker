@@ -107,9 +107,9 @@ Users can add more meaning to their expenses through the required general expens
 
 ### Layer 7: AI Companion
 
-The AI Companion is an optional conversational tool that uses the user's application data, including available spending classifications and reflective context, to answer questions, explain patterns, compare periods, brainstorm savings goals, and support reflection. It should distinguish facts from suggestions, explain the period and data behind an answer, and never assign classifications, change records, or make decisions without explicit user action.
+The AI Companion is an optional conversational tool that uses the user's application data, including B/U/C classifications and reflective context tags, to answer questions, explain patterns, compare periods, brainstorm Savings goals, and support reflection. It should distinguish facts from suggestions, explain the period and data behind an answer, and never assign classifications, change records, or make decisions without explicit user action.
 
-The AI Companion is not required for the application to work. AI-assisted income and expense entry belongs to Layer 1 and must not block the manual entry flow.
+The AI Companion is not required for the application to work. AI-assisted income and expense entry belongs to Layer 1 and must not block the manual entry flow. [Read more](#layer-7-extended-ai-companion).
 
 ## Main application views
 
@@ -147,7 +147,11 @@ A management and progress view for creating, editing, pausing, completing, cance
 
 ### AI Companion
 
-A conversational view for asking questions about financial activity, exploring patterns, reflecting on priorities, and brainstorming goals. It can use available B/U/C classifications and reflective context tags alongside the deterministic metrics and insight messages available in Transactions and Analytics. It may explain or help the user reflect on patterns such as Choice spending associated with a particular category or Need-tagged expenses during a selected period. It must not assign classifications or tags, change records, or make financial decisions without explicit user action. The underlying calculations remain visible and deterministic.
+A conversational, read-only view for asking questions about financial activity, exploring patterns, reflecting on priorities, and brainstorming Savings goals. The active calendar month is used by default, while the user can ask about another month, quarter, year, custom date range, or all available history. Each answer makes its period and relevant data subset clear.
+
+The Companion uses the deterministic metrics and insight messages available in Transactions and Analytics, together with categories, B/U/C classifications, reflective context tags, Recurring commitments, the Available balance, the Savings reserve, and Savings goals. It can explain patterns such as Choice spending associated with a category, expenses with a Need reflective context tag during a selected period, estimated Variable commitment records, or records missing optional context. The experience is insight-first: it describes observed patterns before discussing possibilities, and it only offers suggestions when the user's question explicitly asks for them. Any suggestion must be grounded in the user's application data and capabilities.
+
+The view may show starter questions such as “Summarize my spending this month,” “What patterns do you see in my Choice expenses?”, “Which Variable commitments still have estimated amounts?”, and “What One-time expenses are missing a B/U/C classification?” The Companion cannot assign classifications or reflective context tags, change records, create or modify Savings goals, trigger application functionality, or make financial decisions. The underlying calculations remain deterministic and visible. Before the user starts a conversation, the view clearly warns that AI responses can be incomplete or incorrect, should be reviewed and double-checked, and do not constitute financial advice.
 
 ### Settings
 
@@ -533,6 +537,86 @@ The AI Companion can use categories, B/U/C classifications, reflective context t
 #### Layer 6 boundaries
 
 Layer 6 does not include customizable reflective tags, multiple B/U/C classifications per expense, automatic tag assignment, or Money dials. It does not make context mandatory and does not use B/U/C or reflective tags to judge spending, enforce budgets, or alter savings allocations. Recommendations and conversational interpretation remain responsibilities of the optional AI Companion in Layer 7.
+
+### Layer 7 extended: AI Companion
+
+Layer 7 provides an optional conversational interface for understanding the user's own financial data. The AI Companion is insight-first: it explains recorded activity, summarizes patterns, and identifies incomplete or estimated information before offering any suggestion. It uses the same deterministic metrics, calculations, B/U/C classifications, reflective context tags, Savings goals, Recurring commitments, and analytics that are visible elsewhere in the application. It does not create a separate financial model or replace the application's calculations.
+
+#### Companion purpose and scope
+
+The AI Companion helps the user understand what their Transaction history shows and reflect on how their spending relates to their priorities. It can:
+
+- summarize Income, One-time expenses, recorded recurring-commitment payments, Cashflow, Money left to spend, Available balance, Savings reserve, and Savings goal progress;
+- compare periods and explain meaningful changes between them;
+- summarize One-time expenses by category, B/U/C classification, reflective context tag, or combinations of those fields;
+- explain how the B/U/C model is intended to describe spending as Bill, Usage, or Choice;
+- explain how Need, Love, Like, and Want tags are intended to add personal context without judging the user's choices;
+- identify records that are incomplete, estimated, or missing optional context;
+- explain how existing Income history, spending patterns, and Goal allocation settings relate to a possible Savings goal; and
+- answer questions about the user's Transaction history using the application's available data.
+
+The Companion does not search for external financial opportunities, recommend unrelated lifestyle changes, provide investment or tax guidance, or act as a general financial advisor. For example, it may discuss whether reducing recorded Choice expenses with a Want reflective context tag could help a Savings goal progress faster, but it must not tell the user to find cheaper housing or change a provider unless that information and functionality exist inside the application.
+
+#### Data scope and periods
+
+The Companion can access all application data available to the user, including Transaction history, categories, B/U/C classifications, reflective context tags, Recurring commitments, expected and actual amounts for Variable commitments, Savings goals, contribution history, the Available balance, the Savings reserve, reserve transfers, analytics, and deterministic insight values.
+
+The active calendar month is the default period when the user does not specify one. The user can ask about another month, quarter, year, custom date range, or all available history. When a question concerns a selected period, the Companion uses the same period definitions and calculation rules as Transactions and Analytics.
+
+Every answer that reports or interprets financial data must make its data scope clear. It should state the relevant period and, when material, the subset or exclusions used. For example, an answer may say that it is based on January through March 2026, or that a B/U/C summary excludes expenses without a B/U/C classification. It must not present a filtered subset as the user's complete financial picture.
+
+#### Insight-first responses
+
+The Companion describes observed facts and patterns before discussing possibilities. It does not proactively turn every pattern into advice. Suggestions are appropriate only when the user asks for them explicitly or uses wording that clearly requests them, such as “suggest,” “what could I change,” or “how could I reach this goal faster.”
+
+Suggestions must be grounded in the user's recorded data, the application's analytics, its B/U/C classifications and reflective context tags, or an existing application capability. A suggestion may identify a possible effect, such as reducing Choice expenses with a Want reflective context tag, but must not present that possibility as a required action or a moral judgment. The Companion should acknowledge when the data is insufficient to support a meaningful suggestion.
+
+The Companion may provide concise answers by default. If the user asks for details, it can explain the underlying records, formulas, comparisons, assumptions, and exclusions in more depth.
+
+#### Questions and starter prompts
+
+The AI Companion view may provide starter questions to help users understand what it can do. Initial examples include:
+
+- “Summarize my spending this month.”
+- “What patterns do you see in my Choice expenses?”
+- “How much did I spend on expenses with a Want reflective context tag?”
+- “Which Variable commitments still have estimated amounts?”
+- “What One-time expenses are missing a B/U/C classification?”
+- “How could my current spending affect my Savings goal?”
+
+These prompts are examples, not a fixed limitation. The user can ask other questions as long as they relate to the data and capabilities available in the application.
+
+#### Savings goal support
+
+The Companion can help the user think through a potential Savings goal by using the application's goal rules and recorded data. It may explain an estimated time to reach a target, compare the target with previous income or savings patterns, identify a possible monthly contribution, or describe how different contribution amounts would affect the estimated timeline.
+
+The Companion must not create, edit, pause, complete, cancel, archive, or contribute to a Savings goal. It must not change a Goal allocation, transfer money, or update a transaction. After receiving an explanation, the user remains responsible for opening the relevant application view and making any change themselves.
+
+#### Read-only behaviour and boundaries
+
+The Companion is read-only. It cannot trigger application functionality, save a record, modify a category, add or remove a B/U/C classification or reflective context tag, update a Recurring commitment, change a Savings goal, transfer money, or alter the Available balance or Savings reserve. The only AI flow that may pre-fill an application form is the separate Layer 1 AI-assisted transaction-entry flow, and those drafts still require user review and approval before saving.
+
+The Companion must not assign, infer as fact, or silently add a B/U/C classification or reflective context tag. It can summarize records that already contain those fields and can report which records are missing them. The user is responsible for adding, changing, or removing context in the appropriate application view.
+
+#### Uncertainty and incomplete data
+
+The Companion must clearly communicate uncertainty and data limitations. It should warn the user when an answer is affected by estimated Variable commitment amounts, missing B/U/C classifications, missing reflective context tags, incomplete transaction history, an empty or very small selected period, or goal information that is insufficient for a reliable estimate.
+
+It may answer questions such as which records still need confirmation of their actual Variable commitment amount or which One-time expenses have no B/U/C classification. It should identify the relevant records and explain what is missing, but it must not update them automatically.
+
+The Companion must distinguish recorded facts, calculations, interpretations, and possibilities. It should not invent missing transactions, assume that an expense without a reflective context tag belongs to a particular context, or describe an estimate as a confirmed result.
+
+#### Conversation, language, and user trust
+
+Conversations are temporary and stateless. The Companion does not retain conversational memory or use previous chats to build a user profile. Each conversation is grounded in the application data available at the time it is opened or asked a question.
+
+The initial Companion experience is in English. Notes or records may contain other languages, but multilingual responses and a user-selectable language preference are outside the initial Layer 7 scope.
+
+The tone is neutral and supportive. The Companion must avoid shame, guilt, moral judgments, pressure, and overconfident financial conclusions. Before the user starts a conversation, the AI Companion view must clearly explain that AI responses can be incomplete or incorrect, that users should review and double-check results, and that the Companion is not a financial advisor. This notice should remain easy to find while using the feature.
+
+#### Layer 7 boundaries
+
+Layer 7 does not include persistent chat history, user-specific memory, external financial research, bank or card data, investment or tax advice, automatic classification, automatic tagging, autonomous recommendations, or actions that change application data. It does not replace deterministic calculations or the manual flows for managing transactions, commitments, balances, and Savings goals.
 
 ## Boundaries
 
