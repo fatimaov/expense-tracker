@@ -14,6 +14,8 @@ The existing MVP behavior remains part of V2: users can register, log in, and ma
 
 See the [V2 product requirements](./docs/V2/PRD.md) for the current scope and product rules.
 
+See the [V2 five-week roadmap](./docs/V2/roadmap.md) for the implementation sequence and first AI Companion slice.
+
 ## Live Demo
 
 - App: [expense-tracker-liart-three-87.vercel.app](https://expense-tracker-liart-three-87.vercel.app/)

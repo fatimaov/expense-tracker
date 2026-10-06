@@ -6,6 +6,27 @@ Expense Tracker is a personal money companion that helps users turn everyday fin
 
 V2 builds this direction on top of the completed expense-tracking MVP. The existing MVP behaviour remains available and stable.
 
+## Product delivery strategy: AI from the beginning
+
+The AI Companion is a product capability from the first V2 implementation, not a feature that is postponed until every financial feature is complete. We will build it through small, grounded vertical slices so that each new data capability immediately gives the user a clearer explanation, reflection, or reviewable action.
+
+The implementation must keep two responsibilities separate:
+
+- **Deterministic financial logic** calculates balances, periods, totals, comparisons, and other values that must be correct and reproducible.
+- **The AI Companion** explains those values, answers questions about the available data, identifies limitations, supports reflection, and can prepare proposed actions. It must not become the source of truth or execute an action without the user's explicit confirmation.
+
+Every slice should ship a usable user outcome. A slice is complete only when the underlying data, the user-facing view, the relevant deterministic calculations, and at least one Companion question or explanation work together. The manual flow must remain useful if an AI provider is unavailable.
+
+The first implementation target is therefore an AI-ready transaction foundation and a small grounded Companion, rather than a full chat experience added at the end. Later layers expand the Companion's evidence base and its reviewable action proposals as monthly cashflow, analytics, goals, commitments, and spending context become available.
+
+### Proposed actions and confirmation
+
+The Companion may prepare an action proposal when the user asks it to do something the application supports. Examples include drafting a Savings goal, drafting a Recurring commitment, preparing an income or expense record, or proposing a change to an existing record. A proposal is not an application change.
+
+Every proposal must show the exact operation, all affected fields, the source or reasoning used, important uncertainty, and the expected financial effect when it can be calculated. The user must be able to edit, cancel, or explicitly confirm the proposal. Only the application's normal validated command or form may apply the change after confirmation. The Companion must never bundle unrelated changes, infer consent from a conversational reply that is ambiguous, or report a change as completed before the application confirms success.
+
+The same confirmation model applies across transactions, Savings goals, Recurring commitments, classifications, tags, transfers, and other future actions. Read-only questions do not require confirmation; actions that mutate data always do.
+
 ## Target audience
 
 Expense Tracker is for people managing their own personal finances who want a clearer and more intentional relationship with money. This includes students, people beginning to manage their finances independently, and anyone who wants to understand their cashflow, build better habits, reduce financial stress, or make progress toward meaningful goals.
@@ -80,37 +101,57 @@ The AI Companion may explain the four tags, summarize patterns among expenses th
 
 ## Core features
 
-The application is organized into core capabilities that can be implemented incrementally. Each feature builds on the transaction and cashflow foundation, but later capabilities remain optional for users. Layers 1 and 2 provide the core tracking experience; Savings goals, recurring commitments, richer spending context, and the AI Companion add value as users need them.
+The application is organized into implementation layers. Each layer adds a complete, useful capability on top of the previous one. The AI Companion starts in Layer 1 with the transaction history and grows across the later layers as more financial context and supported actions become available. Users can continue using the manual product if AI is unavailable or not useful to them.
 
-### Layer 1: Transaction tracking
+### Layer 1: Transaction history, entry methods, and the Companion foundation
 
-Layer 1 establishes the transaction history that the rest of the application builds on. Users can create and manage income and expense records for the current or past months using general categories. Records may be entered manually or through optional AI-assisted methods, with the user remaining responsible for reviewing and approving each record before it is saved. [Read more](#layer-1-extended-transaction-tracking).
+Layer 1 establishes the complete transaction history that the rest of the application builds on. Users can create, view, edit, and delete income and one-time expense records for the current or past months. They can manage the initial general categories and the optional B/U/C classification and reflective context tag, enter records manually, or use natural-language, receipt, and voice entry methods. The AI Companion is already available in this layer: it can answer questions about the user's transaction history, find relevant records, prepare new transaction drafts, and prepare edits to existing records, including explicitly requested context changes. Every AI-proposed creation or edit is reviewed and explicitly confirmed before it changes the transaction history. [Read more](#layer-1-extended-transaction-history-entry-methods-and-the-companion-foundation).
 
 ### Layer 2: Monthly cashflow and savings reserve
 
-The application groups transactions by calendar month and focuses the dashboard on the active month. It shows the month's income, expenses, monthly result, money left to spend, available balance, and savings reserve. The user can switch the maximum monthly savings allocation on or off. At month close, the positive result can increase the unassigned reserve, while overspending reduces the unassigned reserve after the available balance is exhausted. This layer works without configurable savings goals. [Read more](#layer-2-extended-monthly-cashflow-and-savings-reserve).
+The application groups transactions by calendar month and focuses the dashboard on the active month. It shows the month's income, expenses, monthly result, money left to spend, available balance, and savings reserve. The user can switch the maximum monthly savings allocation on or off. At month close, the positive result can increase the unassigned reserve, while overspending reduces the unassigned reserve after the available balance is exhausted. This layer works without configurable savings goals.
+
+The Layer 2 Companion extends the Layer 1 transaction-history experience. It can explain the month's calculations, describe why balances or the reserve changed, answer what-if questions without changing data, and prepare confirmed proposals for Layer 2 actions such as changing a starting balance, switching savings allocation, or transferring money between the Available balance and the Unassigned reserve. [Read more](#layer-2-extended-monthly-cashflow-and-savings-reserve).
 
 ### Layer 3: Analytics and awareness
 
-The application turns the raw transaction history into useful, descriptive information. The default view is the current calendar month, but users can select a specific month, quarter, year, custom date range, or all history. Users can review income, expenses, cashflow, savings, categories, and records through metrics, charts, filters, search, and short deterministic insight messages. Analytics also displays the Savings reserve and how it changes across months. [Read more](#layer-3-extended-analytics-and-awareness).
+The application turns the raw transaction history into useful, descriptive information. The default view is the current calendar month, but users can select a specific month, quarter, year, custom date range, or all history. Users can review income, expenses, cashflow, savings, categories, B/U/C classifications, reflective context, and records through metrics, charts, filters, search, and short deterministic insight messages. Analytics also displays the Savings reserve and how it changes across months.
+
+The Layer 3 Companion extends the Layer 1 and Layer 2 experiences over selected analytics data. It can search and summarize filtered records, explain charts and deterministic insights, compare periods, identify missing or estimated information, and answer questions about B/U/C and reflective-context patterns. It can also prepare reviewable proposals to update selected records' classifications or tags, but filtering and searching do not mutate data and every record change still requires confirmation. [Read more](#layer-3-extended-analytics-and-awareness).
 
 ### Layer 4: Savings goals
 
-Users can create multiple Savings goals and define a target, deadline, and contribution plan for each one. Goals with a target and deadline receive an automatically calculated planned contribution. Goals without a deadline use a fixed monthly amount or a percentage of income and can show an estimated time to reach their target. For the active month, the user can choose no Goal allocation, the total planned allocation, or the maximum amount supported by the month's cashflow. At month close, the actual amount is distributed between goals by priority and increases the Savings reserve. Users can transfer money between the Available balance, the Unassigned reserve, and specific goals. Goal progress, withdrawals, and changes to the plan remain visible and user-controlled. [Read more](#layer-4-extended-savings-goals).
+Users can create multiple Savings goals and define a target, deadline, and contribution plan for each one. Goals with a target and deadline receive an automatically calculated planned contribution. Goals without a deadline use a fixed monthly amount or a percentage of income and can show an estimated time to reach their target. For the active month, the user can choose no Goal allocation, the total planned allocation, or the maximum amount supported by the month's cashflow. At month close, the actual amount is distributed between goals by priority and increases the Savings reserve. Users can transfer money between the Available balance, the Unassigned reserve, and specific goals. Goal progress, withdrawals, and changes to the plan remain visible and user-controlled.
+
+The Layer 4 Companion can answer questions about goal progress, affordability, contribution plans, deadlines, estimated completion dates, and the relationship between goals and the Savings reserve. It can reflect on a possible goal using the user's transaction and income history, explain assumptions, and prepare a Savings goal plan with a target, deadline, contribution amount or percentage, and estimated timeline. The user can accept, edit, or cancel the proposal, or complete the same task manually from the Savings Goals view. [Read more](#layer-4-extended-savings-goals).
 
 ### Layer 5: Recurring commitments
 
-Users can optionally create and manage repeated financial commitments separately from one-time expenses. These may be fixed or variable and may represent subscriptions, memberships, essential bills, utilities, loans, or installment purchases. Active commitments appear as upcoming records in the current month, affect Money left to spend, and become linked expense records on their scheduled dates. The application supports an optional Coverage period aligned with the Payment frequency, shows the expected monthly and yearly impact, supports pausing, cancelling, and archiving, and avoids double-counting when an actual payment is recorded. [Read more](#layer-5-extended-recurring-commitments).
+Users can optionally create and manage repeated financial commitments separately from one-time expenses. These may be fixed or variable and may represent subscriptions, memberships, essential bills, utilities, loans, or installment purchases. Active commitments appear as upcoming records in the current month, affect Money left to spend, and become linked expense records on their scheduled dates. The application supports an optional Coverage period aligned with the Payment frequency, shows the expected monthly and yearly impact, supports pausing, cancelling, and archiving, and avoids double-counting when an actual payment is recorded.
 
-### Layer 6: Richer spending context
+The Layer 5 Companion can answer questions about upcoming commitments, expected monthly and yearly impact, payment schedules, Coverage periods, fixed and variable amounts, estimated payments, and the difference between expected and recorded expenses. When explicitly asked, it can prepare a Recurring commitment proposal or a change to an existing commitment. The user can accept, edit, or cancel the proposal, or complete the same task manually from the Recurring Commitments view. [Read more](#layer-5-extended-recurring-commitments).
 
-Users can add more meaning to their expenses through the required general expense category, an optional B/U/C classification, and an optional reflective context tag. These fields enrich analytics and give the AI Companion more context for reflection, but they are not required for basic tracking. Recurring commitments support the same optional classifications and tags. [Read more](#layer-6-extended-richer-spending-context).
+### Layer 6: Context-aware reflection
 
-### Layer 7: AI Companion
+Layer 6 builds deeper reflective workflows on the B/U/C classifications and reflective context tags introduced in Layer 1 and used in Layer 3 analytics. It adds richer combinations, context-aware insights, and reflection prompts across one-time expenses and recurring commitments without making context mandatory or changing financial calculations. [Read more](#layer-6-extended-richer-spending-context).
 
-The AI Companion is an optional conversational tool that uses the user's application data, including B/U/C classifications and reflective context tags, to answer questions, explain patterns, compare periods, brainstorm Savings goals, and support reflection. It should distinguish facts from suggestions, explain the period and data behind an answer, and never assign classifications, change records, or make decisions without explicit user action.
+### Layer 7: AI Companion expansion
 
-The AI Companion is not required for the application to work. AI-assisted income and expense entry belongs to Layer 1 and must not block the manual entry flow. [Read more](#layer-7-extended-ai-companion).
+Layer 7 completes the broader AI Companion experience across the product. It builds on the transaction-history Companion introduced in Layer 1 and adds richer explanations, cross-period reflection, Savings goal and Recurring commitment proposals, uncertainty handling, starter prompts, and the full set of trust and safety behaviours. It uses the user's application data, including B/U/C classifications and reflective context tags, to answer questions, explain patterns, compare periods, brainstorm Savings goals, and prepare supported actions for confirmation.
+
+The Companion is optional, but its first useful version belongs to Layer 1 rather than being postponed until this layer. Layer 7 expands its coverage and action surface; it does not introduce AI for the first time. [Read more](#layer-7-extended-ai-companion-expansion).
+
+### Implementation order
+
+The layers above describe product capability, not the order in which the code must be built. V2 implementation follows a vertical-slice order: establish a trustworthy data contract, expose a small Companion experience, and expand both together.
+
+1. **Transaction history and Companion foundation:** deliver the complete Layer 1 transaction history, entry methods, category management, and a Companion that can answer transaction questions and prepare reviewable transaction creations and edits.
+2. **Cashflow, reserve, and Companion actions:** add monthly result, Money left to spend, Available balance, and Savings reserve, then let the Companion explain the formulas, answer what-if questions, and prepare confirmed proposals for Layer 2 balance and reserve actions.
+3. **Analytics and awareness:** add period selection, comparisons, deterministic insights, search, filters, and analytics over the Layer 1 B/U/C and reflective context fields. The Companion can explain selected subsets, compare periods, identify missing context, and prepare confirmed record-context proposals.
+4. **Planning data and Companion actions:** add Savings goal and Recurring commitment management. The Companion can explain progress, reflect on plans using transaction history, estimate timelines and impacts, and prepare goal or commitment proposals that the user can edit, cancel, or confirm. Every task remains available manually in its management view.
+5. **Companion expansion:** consolidate the cross-layer experience around grounded answers, supported action proposals, starter prompts, uncertainty handling, evaluation cases, and reliable fallback behaviour.
+
+The detailed five-week delivery plan lives in [V2 roadmap](./roadmap.md). If a week cannot deliver a complete slice, its scope must be reduced rather than hiding unfinished infrastructure behind a later AI milestone.
 
 ## Main application views
 
@@ -148,11 +189,11 @@ A management and progress view for creating, editing, pausing, completing, cance
 
 ### AI Companion
 
-A conversational, read-only view for asking questions about financial activity, exploring patterns, reflecting on priorities, and brainstorming Savings goals. The active calendar month is used by default, while the user can ask about another month, quarter, year, custom date range, or all available history. Each answer makes its period and relevant data subset clear.
+A conversational view for asking questions about financial activity, exploring patterns, reflecting on priorities, and preparing reviewable actions. The active calendar month is used by default, while the user can ask about another month, quarter, year, custom date range, or all available history. Each answer makes its period and relevant data subset clear.
 
 The Companion uses the deterministic metrics and insight messages available in Transactions and Analytics, together with categories, B/U/C classifications, reflective context tags, Recurring commitments, the Available balance, the Savings reserve, and Savings goals. It can explain patterns such as Choice spending associated with a category, expenses with a Need reflective context tag during a selected period, estimated Variable commitment records, or records missing optional context. The experience is insight-first: it describes observed patterns before discussing possibilities, and it only offers suggestions when the user's question explicitly asks for them. Any suggestion must be grounded in the user's application data and capabilities.
 
-The view may show starter questions such as “Summarize my spending this month,” “What patterns do you see in my Choice expenses?”, “Which Variable commitments still have estimated amounts?”, and “What One-time expenses are missing a B/U/C classification?” The Companion cannot assign classifications or reflective context tags, change records, create or modify Savings goals, trigger application functionality, or make financial decisions. The underlying calculations remain deterministic and visible. Before the user starts a conversation, the view clearly warns that AI responses can be incomplete or incorrect, should be reviewed and double-checked, and do not constitute financial advice.
+The view may show starter questions such as “Summarize my spending this month,” “What patterns do you see in my Choice expenses?”, “Which Variable commitments still have estimated amounts?”, “What One-time expenses are missing a B/U/C classification?”, and “Create a Savings goal draft for a €1,000 emergency fund by December.” When the user requests an action, the Companion returns a structured proposal for the relevant review flow. It cannot apply the proposal, skip validation, or make a financial decision on the user's behalf. The underlying calculations remain deterministic and visible. Before the user starts a conversation, the view clearly warns that AI responses can be incomplete or incorrect, proposed actions must be reviewed before confirmation, and the Companion does not provide financial advice.
 
 ### Settings
 
@@ -188,11 +229,13 @@ Settings uses supportive, non-judgmental language and explains the effect of con
 
 ## Detailed layer explanations
 
-### Layer 1 extended: Transaction tracking
+### Layer 1 extended: Transaction history, entry methods, and the Companion foundation
 
-Layer 1 provides the raw transaction history and should be useful on its own. Users can add, view, edit, and delete income and expense records for the current or past months. Records can be created manually or through an AI-assisted entry flow, but every AI-assisted record must be reviewed and explicitly approved by the user before it is saved.
+Layer 1 provides the complete transaction history and should be useful on its own. Users can add, view, edit, and delete income and one-time expense records for the current or past months. They can manage the initial general categories, search and review their records, and use manual forms or AI-assisted entry methods. The first version of the AI Companion is delivered in this layer, alongside the transaction history rather than after the other layers.
 
-Each record includes an amount, category, date, and optional notes. Income and expense forms may use different labels and categories, but both belong to the same transaction history. Named records such as Spotify or Mortgage belong to recurring commitments introduced in a later layer.
+Each record includes an amount, category, date, and optional notes. Expense records may also include one optional B/U/C classification and one optional Need/Love/Like/Want reflective context tag. Income and expense forms may use different labels and categories, but both belong to the same transaction history. Named records such as Spotify or Mortgage belong to recurring commitments introduced in a later layer.
+
+Layer 1 defines the optional context fields without requiring them for entry. **B/U/C** describes the user's control over an expense: Bill, Usage, or Choice. **Need/Love/Like/Want** describes the personal meaning of an expense: Need, Love, Like, or Want. These fields are separate from the general category, can be left empty, and can be added, changed, or removed after a record is created. The product must not infer them from a category, receipt, voice input, or other transaction detail.
 
 Layer 1 supports three AI-assisted entry methods in addition to the manual form:
 
@@ -201,6 +244,8 @@ Layer 1 supports three AI-assisted entry methods in addition to the manual form:
 - **Voice entry:** the user records a voice message through browser-supported voice input. The application converts the message to text, and the AI interprets that text and proposes the fields for the matching income or expense form.
 
 The AI should show the proposed transaction clearly, preserve uncertainty where the input is incomplete or ambiguous, and let the user correct any field before approval. It must not save a record, create a recurring commitment, or silently choose a category or date without the user's approval. The manual form remains available at all times and is the fallback when AI entry is unavailable or the user prefers to enter the record directly.
+
+The Layer 1 Companion can answer questions about the transaction history, such as what the user spent in a period, which records match a description, how much was spent in a category, or which records are missing context. When the user asks it to create a transaction or edit an existing one, it prepares a structured proposal containing the operation and all affected fields. This includes a B/U/C classification or reflective context tag only when the user explicitly requests that change; the Companion must not infer or assign context automatically. The user can review, edit, cancel, or confirm the proposal. Confirmation applies the change through the normal transaction validation flow. The Companion cannot delete a record or make any other change without the same explicit confirmation.
 
 The application should start with general expense categories such as:
 
@@ -225,9 +270,9 @@ It should also provide general income categories such as:
 - Interest or other income;
 - Other.
 
-Users should be able to add or deactivate categories later. Existing transaction history should remain understandable if a category is deactivated.
+Users should be able to add or deactivate categories from the Layer 1 category-management flow. Existing transaction history should remain understandable if a category is deactivated, and deactivated categories should not be offered for new records. The Companion may answer questions about categories and prepare a category-management proposal only when the user explicitly requests a supported change; it must not rename or deactivate a category automatically.
 
-The quick-add experience should make one-time expense recording easy, whether the user enters the fields manually or approves an AI-generated draft. The initial forms do not include B/U/C classification, recurring-commitment management, fixed or variable commitment types, or reflective context tags. Those concepts, along with specialized transaction types, monthly calculations, analytics, savings goals, and richer context, belong to later layers. AI-assisted entry is available in Layer 1, while the broader AI Companion remains an optional later-layer experience.
+The quick-add experience should make one-time expense recording easy, whether the user enters the fields manually or approves an AI-generated draft. Layer 1 forms and record editing support the optional B/U/C classification and reflective context tag. Recurring-commitment management, fixed or variable commitment types, monthly calculations, analytics, savings goals, and richer context workflows belong to later layers. The Companion foundation is part of Layer 1; later layers expand its evidence, questions, and supported proposals.
 
 ### Layer 2 extended: Monthly cashflow and savings reserve
 
@@ -245,9 +290,21 @@ The rules for this layer are:
 - **Reserve transfer:** a user can explicitly transfer money between the Available balance and the Unassigned reserve. This is not recorded as income or an expense.
 - **Past changes:** editing or deleting a past transaction recalculates that month's Monthly result, monthly savings allocation, and the balances for following months.
 
+#### Layer 2 Companion capabilities
+
+The Companion uses the same deterministic Layer 2 calculation service as the dashboard. It can:
+
+- explain Income, expenses, Monthly result, Money left to spend, Available balance, Savings reserve, Unassigned reserve, and monthly savings allocation;
+- identify the period and records behind an answer, including whether the month is active or closed;
+- explain how adding, editing, or deleting a transaction would affect the current month and following balances without applying the change;
+- answer what-if questions such as “What would my Available balance be if I spent €100 less this month?” without changing the transaction history; and
+- prepare proposals for supported Layer 2 actions: changing a starting Available balance or Savings reserve, switching savings allocation on or off, and transferring money between the Available balance and the Unassigned reserve.
+
+Each Layer 2 action proposal shows the operation, amount or setting, source and destination when relevant, the balances before and after, and any recalculation or month-close effect. The user can edit, cancel, or confirm it. Confirmation uses the normal Layer 2 validation flow, checks the current balances and calculation state again, and applies nothing if the proposal is stale or invalid. The Companion cannot directly change balances, reserves, allocation settings, or transactions.
+
 ### Layer 3 extended: Analytics and awareness
 
-Layer 3 provides a descriptive view of the user's financial activity. It does not require AI and does not make recommendations, assign moral meaning to spending, or change records. Its calculations and factual insight messages should remain available when the AI Companion is unavailable.
+Layer 3 provides a descriptive view of the user's financial activity. Its calculations and factual insight messages remain available when the AI Companion is unavailable. The Companion is an additional interface over these deterministic results: it does not replace the calculations, assign moral meaning to spending, or change records without a confirmed proposal.
 
 #### Periods and default view
 
@@ -297,13 +354,13 @@ The initial V2 analytics view includes:
 - the Savings reserve trend across months; and
 - Savings goal progress and planned versus actual contributions when Savings goals are available.
 
-B/U/C classification and Need, Love, Like, and Want reflective context tags are optional. They can be defined and supported by analytics without being required for a transaction. If no records contain a classification or reflective context tag, the relevant breakdown shows an empty state and does not block the remaining analytics.
+B/U/C classification and Need, Love, Like, and Want reflective context tags are optional Layer 1 fields. Layer 3 analytics uses them when they are present without requiring them for a transaction. If no records contain a classification or reflective context tag, the relevant breakdown shows an empty state and does not block the remaining analytics.
 
 #### Comparisons and factual insights
 
 Users can compare the current month with the previous month and with the same month in the previous year. Comparisons apply to the main month-level cashflow and savings metrics, including income, expenses, Monthly result, planned or actual savings amounts, and savings rate. For the active month, Monthly result is provisional and is calculated from the transactions recorded so far. For closed or historical months, Monthly result is the final result for that month. Money left to spend is an active-month value and is not used as a historical comparison metric. Available balance and Savings goal progress are not treated as period comparisons by default because they represent current-state values.
 
-Analytics may show short, deterministic insight messages based directly on the selected data, such as “Food represents 34% of your expenses this month” or “Expenses are €120 higher than last month”. These messages are descriptive only. They do not recommend actions, judge spending, or require the AI Companion. The AI Companion may later use the same metrics to answer questions or provide reflection through suggested prompts, but the underlying calculations remain deterministic and visible.
+Analytics may show short, deterministic insight messages based directly on the selected data, such as “Food represents 34% of your expenses this month” or “Expenses are €120 higher than last month”. These messages are descriptive only. They do not recommend actions or judge spending. The Layer 3 Companion can explain the same metrics, comparisons, and patterns through conversation, but the underlying calculations remain deterministic and visible.
 
 #### Search, filters, and records
 
@@ -319,11 +376,24 @@ Search and filters apply to both the transaction list and the metrics and charts
 
 The filtered view makes clear that its metrics represent the filtered subset rather than the user's full finances. Users can edit or delete records from the transaction list. After confirmation, any affected analytics, monthly calculations, and following balances update consistently with the Layer 2 rules. Changes to past records should show the existing recalculation warning before they are applied.
 
+#### Layer 3 Companion capabilities
+
+The Companion uses the exact period, search query, filters, and deterministic result set shown in Transactions and Analytics. It can:
+
+- summarize the selected records and state whether the answer represents all records or a filtered subset;
+- answer questions about categories, B/U/C classifications, reflective context tags, income, expenses, savings, and comparisons;
+- explain charts, headline metrics, deterministic insight messages, empty states, and missing or estimated data;
+- find records that match a natural-language description and identify records missing a classification or reflective context tag;
+- compare supported periods and explain the records and calculations behind the difference; and
+- prepare proposals to edit or delete selected transactions, or to add, change, or remove a B/U/C classification or reflective context tag, when the user explicitly asks.
+
+Search, filtering, chart exploration, and asking for an explanation are read-only interactions and do not require confirmation. Any proposal that changes a record must show the selected records and all affected fields, then pass through the existing review, validation, and confirmation flow. The Companion must not treat a filtered subset as the user's complete financial picture or apply a bulk change without an explicit, reviewable proposal.
+
 #### Empty states and V2 boundaries
 
 When a selected period or breakdown has insufficient data, the application shows an empty state with a short explanation of what is missing, such as “Add income or expenses to see this comparison.” Empty analytics states should not be treated as zero-value financial results.
 
-Export is outside the initial Layer 3 V2 scope. Recommendations, financial advice, and AI-generated interpretations also remain outside this layer.
+Export is outside the initial Layer 3 V2 scope. Financial advice, autonomous recommendations, and unconfirmed AI-generated changes remain outside this layer.
 
 ### Layer 4 extended: Savings goals
 
@@ -414,6 +484,18 @@ Completing a goal does not automatically move or spend its money. If the user la
 
 Changing a goal's target, deadline, or contribution plan affects future planning. Past contribution history remains intact, and the application does not change the target or deadline silently.
 
+#### Layer 4 Companion capabilities
+
+The Companion uses the deterministic Savings goal and cashflow calculations rather than creating its own financial model. It can:
+
+- explain each goal's saved amount, target, remaining amount, progress, status, contribution history, planned contribution, and estimated completion time;
+- reflect on a possible goal using recorded income, expenses, Available balance, Savings reserve, and previous savings patterns;
+- estimate a feasible contribution, target date, or time to reach a target, while stating the period, assumptions, and limitations behind the estimate;
+- compare possible contribution amounts or deadlines and explain how they would affect the estimated timeline; and
+- prepare proposals to create, edit, pause, reactivate, complete, cancel, archive, contribute to, withdraw from, or change the allocation of a Savings goal when the user explicitly asks.
+
+A goal proposal must show the goal name, target, deadline, contribution plan, proposed allocation, and estimated effect before confirmation. It must distinguish an estimate from a committed result and must not invent a user's priorities or treat a suggested goal as financial advice. The user can edit, cancel, or confirm the proposal. Confirmation uses the normal Savings Goals validation flow, checks current income, balances, goal status, and allocation limits again, and reports success or failure. The user can always open Savings Goals and perform the same task manually.
+
 ### Layer 5 extended: Recurring commitments
 
 Layer 5 lets users define and manage Recurring commitments and see their expected effect before each payment is recorded. A Recurring commitment is managed separately from the quick One-time expense form. The user creates it from the Recurring Commitments view, and the application creates linked expense records in the Transaction history according to its schedule.
@@ -502,15 +584,27 @@ Users can add, edit, pause, reactivate, cancel, and archive Recurring commitment
 
 The view may show an active-coverage note for commitments paid in advance, such as “Paid until March 2027.” This note communicates that the commitment remains relevant without treating the covered months as new expenses.
 
-### Layer 6 extended: Richer spending context
+#### Layer 5 Companion capabilities
 
-Layer 6 adds optional context to spending so users can reflect on what their expenses represent and identify patterns that are not visible through categories alone. The context is descriptive rather than judgmental. It does not change the cashflow, savings, or balance calculations, and it is not required to record an expense.
+The Companion uses the deterministic Recurring commitment schedule and planning calculations. It can:
+
+- list and summarize active, paused, cancelled, and archived commitments;
+- explain the next payment, Payment frequency, Coverage period, expected monthly and yearly impact, and the difference between expected, estimated, and recorded amounts;
+- identify commitments with estimated Variable amounts, upcoming payments, missed occurrences, or possible double-counting concerns;
+- explain how a commitment affects Money left to spend and a selected period without treating an expected payment as a recorded expense; and
+- prepare proposals to create, edit, pause, reactivate, cancel, or archive a Recurring commitment, or to confirm the actual amount of a Variable commitment, when the user explicitly asks.
+
+A commitment proposal must show the name, type, amount or estimate, schedule, category, optional context, Coverage period, lifecycle dates, and expected financial impact. The user can edit, cancel, or confirm it, or complete the same task manually in Recurring Commitments. Confirmation uses the normal commitment validation flow, checks the current schedule and existing generated records again, prevents duplicate occurrences, and reports success or failure. The Companion must not infer a recurring commitment from a one-time transaction or create one without an explicit user request and confirmation.
+
+### Layer 6 extended: Context-aware reflection
+
+Layer 6 deepens reflection on the optional context already available from Layer 1 and used by Layer 3 analytics. It helps users combine context with categories, commitments, goals, and priorities to identify patterns that are not visible through categories alone. The context is descriptive rather than judgmental. It does not change the cashflow, savings, or balance calculations, and it is not required to record an expense.
 
 #### Categories remain required
 
 Every income and expense record continues to use one general category from Layer 1. The category is the only required classification. Users can use **Other** when no available category describes the record. They can add new categories or deactivate existing categories from Settings, but they cannot rename the existing categories. Deactivating a category does not remove it from existing records or make their history unreadable.
 
-Layer 6 does not replace the category with a more personal label. B/U/C classification and reflective context tags add context alongside the general category.
+Layer 6 does not replace the category with a more personal label. The B/U/C classification and reflective context tags introduced in Layer 1 add context alongside the general category.
 
 #### B/U/C classification
 
@@ -537,7 +631,7 @@ An expense can have both one B/U/C classification and one reflective context tag
 
 #### Entry and editing
 
-The manual expense form may include the optional B/U/C classification and reflective context tag, but the user can leave both fields empty. The AI-assisted entry methods from Layer 1 interpret only the required category for a proposed income or expense. They do not assign B/U/C classifications or reflective context tags. The user can add those fields while reviewing the proposed record or later from the Transaction history.
+The Layer 1 manual expense form and record editor include the optional B/U/C classification and reflective context tag, but the user can leave both fields empty. The AI-assisted entry methods interpret the required category and may include context only when the user explicitly requests it. They do not infer or silently assign B/U/C classifications or reflective context tags. The user can add, change, or remove those fields while reviewing a proposed record or later from the Transaction history.
 
 Adding, changing, or removing context does not alter the amount, date, category, or cashflow calculations. If the user edits other fields on a past record at the same time, the existing recalculation warning applies.
 
@@ -547,7 +641,7 @@ Recurring commitments accept the same optional B/U/C classification and reflecti
 
 When a Recurring commitment creates a generated expense record, the record receives the commitment's current category, B/U/C classification, and reflective context tag. Changes to a commitment affect future generated records only. Existing generated records retain their current values and can be edited from the Transaction history.
 
-The AI-assisted entry methods must not create or modify these classifications when proposing an income or expense. A user remains responsible for adding context to a generated or manually entered record.
+The AI-assisted entry methods must not infer or silently create or modify these classifications when proposing an income or expense. If the user explicitly requests a context change, the Companion may include it in a proposal, but the user remains responsible for reviewing and confirming the generated or manually entered record.
 
 #### Filters and contextual analytics
 
@@ -561,15 +655,15 @@ The optional context fields can be combined with each other and with expense cat
 
 The deterministic insight messages from Layer 3 expand to use B/U/C classifications and reflective context tags when the selected data contains them. These insights describe patterns without judging the user's choices or recommending a classification. They analyze only records containing the relevant context and do not treat missing tags as a financial result.
 
-The AI Companion can use categories, B/U/C classifications, reflective context tags, and the user's other recorded data to explain patterns and support financial reflection. It may help the user think about priorities, compare contextual spending across periods, or explore what their records show. It must not assign, suggest, or silently add B/U/C classifications or reflective context tags, and it must not change records or make decisions without explicit user action.
+The AI Companion can use categories, B/U/C classifications, reflective context tags, and the user's other recorded data to explain patterns and support financial reflection. It may help the user think about priorities, compare contextual spending across periods, or explore what their records show. It must not infer or apply B/U/C classifications or reflective context tags. If the user explicitly asks for a supported classification or tag change, it may prepare a proposal, but the user must review and confirm it before the record changes.
 
 #### Layer 6 boundaries
 
-Layer 6 does not include customizable reflective tags, multiple B/U/C classifications per expense, automatic tag assignment, or Money dials. It does not make context mandatory and does not use B/U/C or reflective tags to judge spending, enforce budgets, or alter savings allocations. Recommendations and conversational interpretation remain responsibilities of the optional AI Companion in Layer 7.
+Layer 6 does not include customizable reflective tags, multiple B/U/C classifications per expense, automatic tag assignment, or Money dials. It does not make context mandatory and does not use B/U/C or reflective tags to judge spending, enforce budgets, or alter savings allocations. Recommendations and conversational interpretation remain responsibilities of the optional AI Companion, which begins in Layer 1 and expands through Layer 7.
 
-### Layer 7 extended: AI Companion
+### Layer 7 extended: AI Companion expansion
 
-Layer 7 provides an optional conversational interface for understanding the user's own financial data. The AI Companion is insight-first: it explains recorded activity, summarizes patterns, and identifies incomplete or estimated information before offering any suggestion. It uses the same deterministic metrics, calculations, B/U/C classifications, reflective context tags, Savings goals, Recurring commitments, and analytics that are visible elsewhere in the application. It does not create a separate financial model or replace the application's calculations.
+Layer 7 provides the expanded conversational interface for understanding and acting on the user's own financial data. The AI Companion was introduced in Layer 1 for transaction-history questions and reviewable transaction proposals. In this layer it becomes insight-first across the full product: it explains recorded activity, summarizes patterns, identifies incomplete or estimated information, and prepares supported proposals before the user confirms them. It uses the same deterministic metrics, calculations, B/U/C classifications, reflective context tags, Savings goals, Recurring commitments, and analytics that are visible elsewhere in the application. It does not create a separate financial model or replace the application's calculations.
 
 #### Companion purpose and scope
 
@@ -617,13 +711,15 @@ These prompts are examples, not a fixed limitation. The user can ask other quest
 
 #### Savings goal support
 
-The Companion can help the user think through a potential Savings goal by using the application's goal rules and recorded data. It may explain an estimated time to reach a target, compare the target with previous income or savings patterns, identify a possible monthly contribution, or describe how different contribution amounts would affect the estimated timeline.
+The Companion can help the user think through a potential Savings goal by using the application's goal rules and recorded data. It may explain an estimated time to reach a target, compare the target with previous income or savings patterns, identify a possible monthly contribution, or describe how different contribution amounts would affect the estimated timeline. If the user asks, it may prepare a Savings goal proposal with fields such as name, target, deadline, and contribution plan.
 
-The Companion must not create, edit, pause, complete, cancel, archive, or contribute to a Savings goal. It must not change a Goal allocation, transfer money, or update a transaction. After receiving an explanation, the user remains responsible for opening the relevant application view and making any change themselves.
+The Companion must not create, edit, pause, complete, cancel, archive, or contribute to a Savings goal without a confirmed proposal. It must not change a Goal allocation, transfer money, or update a transaction without the same explicit confirmation boundary. After receiving a proposal, the user remains responsible for reviewing the fields and confirming or rejecting it.
 
-#### Read-only behaviour and boundaries
+#### Action proposals and boundaries
 
-The Companion is read-only. It cannot trigger application functionality, save a record, modify a category, add or remove a B/U/C classification or reflective context tag, update a Recurring commitment, change a Savings goal, transfer money, or alter the Available balance or Savings reserve. The only AI flow that may pre-fill an application form is the separate Layer 1 AI-assisted transaction-entry flow, and those drafts still require user review and approval before saving.
+The Companion can read the user's permitted application data and can prepare structured action proposals. It cannot directly save a record, modify a category, add or remove a B/U/C classification or reflective context tag, update a Recurring commitment, change a Savings goal, transfer money, or alter the Available balance or Savings reserve. A proposal may pre-fill the relevant application form or review surface, but the user must be able to inspect every field and explicitly confirm before the normal application command applies it.
+
+The application must treat proposals as untrusted input. It validates ownership, permissions, required fields, supported values, dates, amounts, balance rules, and conflicts again at confirmation time. A stale proposal must be rechecked or rejected rather than applied against changed data. The UI should show a clear success or failure state after confirmation.
 
 The Companion must not assign, infer as fact, or silently add a B/U/C classification or reflective context tag. It can summarize records that already contain those fields and can report which records are missing them. The user is responsible for adding, changing, or removing context in the appropriate application view.
 
@@ -631,7 +727,7 @@ The Companion must not assign, infer as fact, or silently add a B/U/C classifica
 
 The Companion must clearly communicate uncertainty and data limitations. It should warn the user when an answer is affected by estimated Variable commitment amounts, missing B/U/C classifications, missing reflective context tags, incomplete transaction history, an empty or very small selected period, or goal information that is insufficient for a reliable estimate.
 
-It may answer questions such as which records still need confirmation of their actual Variable commitment amount or which One-time expenses have no B/U/C classification. It should identify the relevant records and explain what is missing, but it must not update them automatically.
+It may answer questions such as which records still need confirmation of their actual Variable commitment amount or which One-time expenses have no B/U/C classification. It should identify the relevant records and explain what is missing. If the user asks it to fill in a supported field, it may prepare a proposal, but it must not update the record automatically.
 
 The Companion must distinguish recorded facts, calculations, interpretations, and possibilities. It should not invent missing transactions, assume that an expense without a reflective context tag belongs to a particular context, or describe an estimate as a confirmed result.
 
@@ -645,7 +741,7 @@ The tone is neutral and supportive. The Companion must avoid shame, guilt, moral
 
 #### Layer 7 boundaries
 
-Layer 7 does not include persistent chat history, user-specific memory, external financial research, bank or card data, investment or tax advice, automatic classification, automatic tagging, autonomous recommendations, or actions that change application data. It does not replace deterministic calculations or the manual flows for managing transactions, commitments, balances, and Savings goals.
+Layer 7 does not include persistent chat history, user-specific memory, external financial research, bank or card data, investment or tax advice, automatic classification, automatic tagging, autonomous recommendations, or unconfirmed actions that change application data. It does include user-confirmed proposals for supported application actions. It does not replace deterministic calculations or the manual flows for managing transactions, commitments, balances, and Savings goals.
 
 ## Boundaries
 
@@ -653,7 +749,7 @@ V2 is a personal finance tool for individual users. It covers income and expense
 
 V2 does not include bank or card connections, automatic transaction imports, shared household finances, business accounting, investment execution, tax reporting, or professional financial advice. Debt and installment commitments may be represented for visibility, but detailed payoff planning is outside the initial V2 scope.
 
-AI features are optional and must remain explainable and user-controlled. AI may interpret input, explain recorded data, and suggest possibilities, but it must not make changes or decisions without explicit user action. The data model, transaction fields, technical architecture, browser API choices, and entity relationships belong in the architecture document rather than this PRD.
+AI features are optional and must remain explainable and user-controlled. AI may interpret input, explain recorded data, suggest possibilities, and prepare proposals for supported actions, but it must not apply changes or decisions without explicit user confirmation. The data model, transaction fields, technical architecture, browser API choices, and entity relationships belong in the architecture document rather than this PRD.
 
 ## Definition of success
 
