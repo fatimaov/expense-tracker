@@ -89,6 +89,7 @@ The roadmap is intentionally outcome-led. Each week should end with something a 
 - Consolidate the Companion view, starter prompts, period selection, conversation states, loading/error/empty states, and the AI disclaimer.
 - Add a structured Companion context builder that exposes only the signed-in user's permitted data.
 - Add provider failure fallback, incomplete-data messaging, response length limits, and logging that excludes sensitive raw prompts where possible.
+- Define and test the Layer 5 knowledge boundary: the Companion may use curated external knowledge about general financial education and healthy financial habits, while application facts and calculations still come only from signed-in app data and deterministic services.
 - Add proposal validation, stale-data checks, duplicate-submission protection, cancellation, and clear success/failure states after confirmation.
 - Test the Companion against representative cases: empty data, one record, missing optional context, estimated commitments, negative balance, multiple periods, and ambiguous questions.
 - Review the five-week slices for accessibility, mobile use, privacy, and accidental mutation paths.
@@ -97,7 +98,7 @@ The roadmap is intentionally outcome-led. Each week should end with something a 
 
 ## Scope guardrails
 
-The five-week plan does not include bank or card connections, persistent chat memory, autonomous actions, automatic classifications, investment or tax advice, shared finances, or a complete voice/receipt pipeline. Confirmed proposals for supported actions are included from Layer 1; autonomous or unconfirmed mutations are not. Broader action coverage can be evaluated after the Companion expansion proves that grounded explanations and proposals create value.
+The five-week plan does not include bank or card connections, persistent chat memory, autonomous actions, automatic classifications, live external account or market data, external financial-product recommendations, legal or regulatory interpretation, investment or tax advice, shared finances, or a complete voice/receipt pipeline. Curated general financial education and healthy-habit knowledge is included in the Layer 5 direction. Confirmed proposals for supported actions are included from Layer 1; autonomous or unconfirmed mutations are not. A broader advisor-like mode would require a separate product and architecture decision.
 
 If implementation capacity is lower than expected, preserve the order and reduce breadth: complete the current week's end-to-end slice before starting the next layer. The first slice to cut is breadth of prompts, not deterministic correctness, manual entry, or user control.
 

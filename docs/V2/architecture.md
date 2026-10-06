@@ -48,6 +48,8 @@ The Companion integration should have three stages:
 2. Build a layer-specific evidence/context object from deterministic services and permitted records.
 3. Return either a grounded response or a typed action proposal for the normal application flow.
 
+Layer 5 may add a curated external-knowledge retrieval step for general financial education and healthy financial habits. That knowledge source must remain separate from application evidence, be identifiable in the response, and never override deterministic application calculations. Live account data, market data, and unreviewed web content are outside this boundary until a later decision defines their source, freshness, privacy, and safety requirements.
+
 Action proposals are untrusted input. The application validates them again when the user confirms. Proposals need an operation type, target entity, affected fields, evidence/reference context, proposal version or timestamp, and an idempotency key or equivalent duplicate-submission protection.
 
 ## Security and privacy

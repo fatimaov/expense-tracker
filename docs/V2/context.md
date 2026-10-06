@@ -22,6 +22,8 @@ V2 does not include bank or card connections, automatic transaction imports, sha
 - The Companion must not infer consent, silently classify a record, bundle unrelated changes, or claim success before the application confirms success.
 - Manual flows remain complete alternatives to AI flows.
 - AI responses must identify the relevant period and data subset, distinguish facts from calculations and suggestions, and acknowledge incomplete or estimated data.
+- The Companion may use curated external knowledge about general financial education and healthy financial habits for explanation, reflection, and non-professional guidance.
+- External knowledge must not be presented as the user's personal financial facts. Personalized facts, calculations, and actions remain grounded in the application data and capabilities.
 - The product uses supportive, non-judgmental language. B/U/C and Need/Love/Like/Want are descriptive reflection tools, not moral scores.
 
 ## Core terminology
@@ -50,7 +52,7 @@ Both context fields are optional Layer 1 data. They are separate from general ca
 
 The Companion begins in Layer 1 with transaction-history questions and transaction proposals. It expands in later layers to explain cashflow, explore analytics, support financial planning, and provide cross-feature reflection. It may prepare supported actions in every layer, but only explicit user confirmation can mutate application data.
 
-The future direction may include a more advisor-like guidance experience. That is not part of the current scope. Any future guidance must remain grounded in application data, distinguish suggestions from facts, and preserve the confirmation and professional-advice boundaries above.
+The future direction may include a more advisor-like guidance experience. Layer 5 may use curated external knowledge to discuss general financial habits, but it does not include live external account or market data, external financial-product recommendations, or professional financial advice. Any future guidance must distinguish general knowledge from application facts and preserve the confirmation and professional-advice boundaries above.
 
 ## Success
 
