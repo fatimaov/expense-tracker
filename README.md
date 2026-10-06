@@ -12,7 +12,7 @@ Users can add savings goals, recurring commitments, richer spending context, and
 
 The existing MVP behavior remains part of V2: users can register, log in, and manage their own expenses with a responsive interface.
 
-See the [V2 product requirements](./docs/V2/PRD.md) for the current scope and product rules.
+See the [V2 documentation](./docs/V2/README.md) for product context, architecture, implementation layers, and roadmap.
 
 See the [V2 five-week roadmap](./docs/V2/roadmap.md) for the implementation sequence and first AI Companion slice.
 

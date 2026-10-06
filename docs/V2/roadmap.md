@@ -1,6 +1,8 @@
 # Expense Tracker V2 — Five-Week Roadmap
 
-This roadmap turns the V2 PRD into five small, user-visible delivery slices. The goal is to start building the AI Companion immediately while keeping financial calculations deterministic and the product useful without AI.
+This roadmap turns the V2 product context into five small, user-visible delivery slices. The goal is to start building the AI Companion immediately while keeping financial calculations deterministic and the product useful without AI.
+
+The implementation layers are documented in `layers/`. Read [V2 documentation](./README.md) for the documentation map, [context](./context.md) for product-wide rules, and [architecture](./architecture.md) for shared technical decisions.
 
 The roadmap is intentionally outcome-led. Each week should end with something a user can try, not only a completed backend layer. Dates are omitted so the plan can start in the next available development week.
 
