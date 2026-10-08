@@ -25,6 +25,7 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)
     FLASK_ENV = os.getenv("FLASK_ENV", "production")
     FLASK_DEBUG = _as_bool(os.getenv("FLASK_DEBUG"))
+    ENABLE_ADMIN = _as_bool(os.getenv("ENABLE_ADMIN"))
     DEBUG = FLASK_DEBUG
     CORS_ORIGINS = _as_list(
         os.getenv("CORS_ORIGINS", "http://localhost:5173")

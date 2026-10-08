@@ -15,7 +15,8 @@ def create_app() -> Flask:
     migrate.init_app(app, db)
     jwt.init_app(app)
     cors.init_app(app)
-    init_admin(app)
+    if app.config["ENABLE_ADMIN"] and app.config["FLASK_ENV"] == "development":
+        init_admin(app)
 
     for blueprint in blueprints:
         app.register_blueprint(blueprint)
