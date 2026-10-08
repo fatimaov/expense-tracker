@@ -1,5 +1,6 @@
 from flask import Flask
 
+from .admin import init_admin
 from . import models
 from .config import Config
 from .extensions import cors, db, jwt, migrate
@@ -14,6 +15,7 @@ def create_app() -> Flask:
     migrate.init_app(app, db)
     jwt.init_app(app)
     cors.init_app(app)
+    init_admin(app)
 
     for blueprint in blueprints:
         app.register_blueprint(blueprint)

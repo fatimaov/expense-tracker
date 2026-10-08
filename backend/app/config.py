@@ -31,3 +31,6 @@ class Config:
     )
     CORS_ALLOW_HEADERS = ["Content-Type", "Authorization"]
     CORS_RESOURCES = {r"/api/*": {"origins": CORS_ORIGINS}}
+    ADMIN_NAME = os.getenv("ADMIN_NAME", "Expense Tracker Admin")
+    ADMIN_URL = os.getenv("ADMIN_URL", "/admin")
+    ADMIN_THEME_SWATCH = os.getenv("ADMIN_THEME_SWATCH", "default")

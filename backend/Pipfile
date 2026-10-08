@@ -13,6 +13,15 @@ python-dotenv = "*"
 psycopg2-binary = "*"
 sqlalchemy = "*"
 gunicorn = "*"
+flask-admin = "*"
+
+[scripts]
+start = "python run.py"
+command = "flask --app run.py"
+init = "flask --app run.py db init"
+migrate = "flask --app run.py db migrate"
+upgrade = "flask --app run.py db upgrade"
+downgrade = "flask --app run.py db downgrade"
 
 [dev-packages]
 
