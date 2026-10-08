@@ -61,6 +61,8 @@ The Companion integration should have three stages:
 
 Layer 5 may add a curated external-knowledge retrieval step for general financial education and healthy financial habits. Retrieval-augmented generation is not part of Layer 1 AI-assisted transaction entry: that flow uses the user's supplied input and permitted application data to prepare a reviewable draft. Layer 5 retrieval remains separate from application evidence, is identifiable in the response, and never overrides deterministic application calculations. Live account data, market data, and unreviewed web content are outside this boundary until a later decision defines their source, freshness, privacy, and safety requirements.
 
+AI-provider access must sit behind a provider adapter selected by deployment configuration. The adapter must support commercial providers and an OpenAI-compatible local endpoint such as LM Studio without exposing provider-specific types to services or routes. V2 starts with a per-user limit of 10 AI requests per 15 minutes, a 30-second provider timeout, and no automatic retry after a provider request has started. Provider errors return a safe, actionable error and do not block manual flows.
+
 Action proposals are untrusted input. The application validates them again when the user confirms. Proposals need an operation type, target entity, affected fields, evidence/reference context, proposal version or timestamp, and an idempotency key or equivalent duplicate-submission protection.
 
 ## Shared financial vocabulary
@@ -72,13 +74,15 @@ The product uses **B/U/C** as the canonical spending-context model: **Bill**, **
 - Every query and mutation is scoped to the authenticated user.
 - AI context must contain only data the user is authorized to view.
 - Prompts, responses, and logs should avoid unnecessary sensitive raw data.
+- Receipt images and voice recordings are private, transient request inputs. The application may retain them only long enough to send the provider request; it must delete them after that request finishes, whether it succeeds or fails. V2 does not offer a media library or retain uploaded files for later review.
+- Users may soft-delete their account. A deleted account cannot authenticate or access private data. V2 does not include data export.
 - Confirmation endpoints must validate ownership again rather than trusting the proposal creator.
 - Provider failures must not block manual entry or management flows.
 - Unsupported or ambiguous actions must result in a clarification or safe refusal, not a guessed mutation.
 
 ## API conventions
 
-Use the existing `/api` prefix, authenticated routes for private data, consistent JSON error responses, ownership checks, and migration-backed schema changes. New endpoints should be thin transport layers that call services. Response shapes should distinguish recorded values, estimates, projections, and proposals.
+Use the `/api/v2` prefix, authenticated routes for private data, consistent JSON error responses, ownership checks, and migration-backed schema changes. New endpoints should be thin transport layers that call services. Response shapes should distinguish recorded values, estimates, projections, and proposals.
 
 ## Testing expectations
 
