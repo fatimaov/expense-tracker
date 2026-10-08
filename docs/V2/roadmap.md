@@ -21,17 +21,17 @@ The roadmap is intentionally outcome-led. Each week should end with something a 
 **Build:**
 
 - Define the V2 transaction contract for income and one-time expenses while preserving existing MVP behaviour.
-- Complete transaction-history CRUD for income and one-time expenses, including search and record selection.
-- Add initial category management: list, add, deactivate, validate, and preserve historical categories.
+- Complete transaction-history CRUD for income and one-time expenses, including record selection and paginated complete-history access.
+- Add seven fixed, shared categories: five expense categories and two income categories. Users can list them but cannot manage them.
 - Add optional B/U/C classification and Need/Love/Like/Want reflective context fields to Layer 1 forms, record editing, and transaction storage.
 - Add manual, natural-language, receipt, and voice entry boundaries. The manual form must remain complete even if AI entry is unavailable.
 - Add a Companion entry point that answers questions about transaction history and selected periods.
-- Let the Companion prepare transaction creation, edit, and deletion proposals with explicit review, cancel, edit, and confirm states.
+- Let the Companion prepare edit, deletion, and expense-context proposals with explicit review, cancel, edit, and confirm states.
 - Create a deterministic summary service that returns the selected period, totals, categories, record counts, and missing-data notes.
-- Define the proposal shape and confirmation boundary, even if the first week only supports transaction drafts.
+- Define the typed answer, clarification, and proposal response shapes and their confirmation boundary.
 - Pass the summary service output to the AI as structured evidence. Include the period in every answer.
 
-**Done when:** A user can manage income and expenses manually, add or edit optional context, ask the Companion about their transaction history, and request a transaction or context change without anything changing until they confirm the reviewed proposal. Add at least five fixed evaluation cases, including an empty month, a month with income and expenses, an ambiguous request, and a rejected proposal.
+**Done when:** A user can manage income and expenses manually, add or edit optional context, view paginated complete history, ask the Companion about their transaction history, and request an edit, deletion, or context change without anything changing until they confirm the reviewed proposal. Add at least five fixed evaluation cases, including an empty month, a month with income and expenses, an ambiguous request, and a rejected proposal.
 
 ## Week 2 — Monthly cashflow, reserve, and Companion actions
 
@@ -108,6 +108,6 @@ Start with Week 1 by writing the transaction evidence and action-proposal contra
 
 > “Summarize my spending this month.”
 
-> “Create a €40 expense for groceries today.”
+> “I spent €40 on groceries today.”
 
 Before adding a chat UI, make sure the same structured evidence can power the transaction view, API responses, automated tests, and Companion answers. The proposal must flow through the normal form or command validation after confirmation. These contracts are the foundation for every later AI answer and action.

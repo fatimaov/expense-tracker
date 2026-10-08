@@ -2,19 +2,21 @@
 
 Expense Tracker is a full-stack personal finance-awareness tool. It helps users record income and expenses, understand what they have left to spend each month, and build a habit of saving money.
 
-The repository currently contains the working MVP for personal expense tracking. V2 is the next product direction and is being defined on top of that foundation.
+The repository currently contains the working MVP for personal expense tracking. V2 extends that foundation in small, user-visible layers while keeping the basic tracker useful when AI is unavailable.
 
 ## V2 Direction
 
-V2 expands the MVP into a broader personal finance tool organized around calendar months. The core experience helps users record income and expenses, understand their monthly cashflow and balances, and review their transaction history.
+V2 adds:
 
-Users can add savings goals, recurring commitments, richer spending context, and an optional AI Companion as they need them. They can also create transaction drafts from natural-language input, receipt images, or voice input, but every AI-generated draft must be reviewed and approved before it is saved. The product remains useful for basic tracking without requiring users to use every capability.
-
-The existing MVP behavior remains part of V2: users can register, log in, and manage their own expenses with a responsive interface.
+- Complete income and expense history with fixed categories and optional spending context.
+- Monthly cashflow, available balance, savings reserve, savings goals, and recurring commitments.
+- Search, filters, comparisons, charts, and financial-planning views.
+- An optional AI Companion for grounded answers and reviewable transaction or planning proposals.
+- Assisted entry from natural-language text, receipt images, and voice input, always requiring user review before saving.
 
 See the [V2 documentation](./docs/V2/README.md) for product context, architecture, implementation layers, and roadmap.
 
-See the [V2 five-week roadmap](./docs/V2/roadmap.md) for the implementation sequence and first AI Companion slice.
+See the [V2 five-week roadmap](./docs/V2/roadmap.md) for the implementation sequence and the first AI Companion slice. The roadmap describes delivery order; the [product context](./docs/V2/context.md) and [shared architecture](./docs/V2/architecture.md) define the product and technical rules.
 
 ## Live Demo
 
@@ -111,14 +113,16 @@ frontend/.env.example →  frontend/.env
 
 See `docs/MVP/DEPLOYMENT.md` for additional configuration details.
 
-### 4. Set up PostgreSQL
+### 4. Set up PostgreSQL and run migrations
 
-Create a PostgreSQL database, update the backend environment variables, and run:
+Create a PostgreSQL database named `expense_tracker`, update `backend/.env` with its connection string and a local JWT secret, and run:
 
 ```bash
 cd backend
-pipenv run flask --app run:app db upgrade
+pipenv run upgrade
 ```
+
+The backend uses the locked Python dependencies from `backend/Pipfile.lock`.
 
 ### 5. Run the project
 
@@ -126,7 +130,7 @@ Backend:
 
 ```bash
 cd backend
-pipenv run python run.py
+pipenv run start
 ```
 
 Frontend:
@@ -140,6 +144,8 @@ Default local URLs:
 
 - Frontend: `http://localhost:5173`
 - Backend API: `http://localhost:5000/api`
+
+Verify the backend with `http://localhost:5000/api/health`. For frontend checks, run `npm run lint` and `npm run build` from `frontend/`.
 
 ## Project Structure
 
