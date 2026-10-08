@@ -7,9 +7,11 @@ from .extensions import cors, db, jwt, migrate
 from .routes import blueprints
 
 
-def create_app() -> Flask:
+def create_app(test_config: dict | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(Config)
+    if test_config:
+        app.config.update(test_config)
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -20,5 +22,12 @@ def create_app() -> Flask:
 
     for blueprint in blueprints:
         app.register_blueprint(blueprint)
+
+    app.add_url_rule(
+        "/api/v2/docs",
+        endpoint="swagger_ui.docs_without_trailing_slash",
+        view_func=app.view_functions["swagger_ui.show"],
+        defaults={"path": None},
+    )
 
     return app

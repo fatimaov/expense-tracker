@@ -14,6 +14,7 @@ psycopg2-binary = "*"
 sqlalchemy = "*"
 gunicorn = "*"
 flask-admin = "*"
+flask-swagger-ui = "*"
 
 [scripts]
 start = "python run.py"
@@ -24,6 +25,7 @@ upgrade = "flask --app run.py db upgrade"
 downgrade = "flask --app run.py db downgrade"
 
 [dev-packages]
+pytest = "*"
 
 [requires]
 python_version = "3.13"

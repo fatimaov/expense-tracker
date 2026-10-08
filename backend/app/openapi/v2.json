@@ -1,0 +1,65 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Expense Tracker V2 API",
+    "version": "2.0.0",
+    "description": "Public health and fixed category endpoints for V2."
+  },
+  "servers": [{ "url": "/api/v2" }],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Check API availability",
+        "description": "Public endpoint. Returns no personal or financial data.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "API is available.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthResponse" } } }
+          }
+        }
+      }
+    },
+    "/categories": {
+      "get": {
+        "operationId": "listCategories",
+        "summary": "List fixed transaction categories",
+        "description": "Public endpoint. Returns the seven application-managed categories.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Fixed categories.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CategoryListResponse" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status"],
+        "properties": { "status": { "type": "string", "enum": ["ok"] } },
+        "additionalProperties": false
+      },
+      "Category": {
+        "type": "object",
+        "required": ["key", "label", "transaction_type"],
+        "properties": {
+          "key": { "type": "string", "example": "expense_transport" },
+          "label": { "type": "string", "example": "Transport" },
+          "transaction_type": { "type": "string", "enum": ["expense", "income"] }
+        },
+        "additionalProperties": false
+      },
+      "CategoryListResponse": {
+        "type": "object",
+        "required": ["categories"],
+        "properties": { "categories": { "type": "array", "items": { "$ref": "#/components/schemas/Category" } } },
+        "additionalProperties": false
+      }
+    }
+  }
+}
