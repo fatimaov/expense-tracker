@@ -1,6 +1,6 @@
 
-from .enums import ExpenseCategory
-from .expense import Expense
+from .category import Category
+from .transaction import Transaction
 from .user import User
 
-__all__ = ["Expense", "ExpenseCategory", "User"]
+__all__ = ["Category", "Transaction", "User"]

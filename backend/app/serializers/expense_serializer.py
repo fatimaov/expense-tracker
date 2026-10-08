@@ -1,15 +1,17 @@
-from ..models import Expense
+from ..models import Transaction
+from ..services.transaction_service import legacy_title_and_notes
 
 
 def serialize_expense(
-    expense: Expense,
+    expense: Transaction,
 ) -> dict[str, int | float | str | None]:
+    title, notes = legacy_title_and_notes(expense)
     return {
         "id": expense.id,
-        "title": expense.title,
+        "title": title,
         "amount": float(expense.amount),
-        "category": expense.category.value,
-        "expense_date": expense.expense_date.isoformat(),
-        "notes": expense.notes,
+        "category": expense.category.label,
+        "expense_date": expense.transaction_date.isoformat(),
+        "notes": notes,
         "created_at": expense.created_at.isoformat(),
     }

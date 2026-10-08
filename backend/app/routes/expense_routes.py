@@ -2,8 +2,8 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from ..serializers import serialize_expense
-from ..services.expense_service import (
-    ExpenseNotFoundError,
+from ..services.transaction_service import (
+    TransactionNotFoundError,
     create_expense,
     delete_expense,
     get_expense_by_id,
@@ -85,7 +85,7 @@ def update_user_expense(expense_id: int):
         return error_response(str(error), "INVALID_TOKEN_IDENTITY", 401)
     except ValidationError as error:
         return error_response(str(error), "VALIDATION_ERROR", 400)
-    except ExpenseNotFoundError as error:
+    except TransactionNotFoundError as error:
         return error_response(str(error), "EXPENSE_NOT_FOUND", 404)
 
     return jsonify(expense=serialize_expense(expense))
@@ -99,7 +99,7 @@ def delete_user_expense(expense_id: int):
         delete_expense(expense_id, user_id)
     except InvalidUserIdentityError as error:
         return error_response(str(error), "INVALID_TOKEN_IDENTITY", 401)
-    except ExpenseNotFoundError as error:
+    except TransactionNotFoundError as error:
         return error_response(str(error), "EXPENSE_NOT_FOUND", 404)
 
     return jsonify(message="Expense deleted successfully.")

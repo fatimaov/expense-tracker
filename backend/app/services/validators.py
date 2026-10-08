@@ -2,7 +2,6 @@ import re
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 
-from ..models import ExpenseCategory
 
 
 MIN_PASSWORD_LENGTH = 8
@@ -76,19 +75,4 @@ def validate_expense_date(value: object) -> date:
     except ValueError:
         raise ValidationError(
             "Expense date must be a valid date in YYYY-MM-DD format."
-        ) from None
-
-
-def validate_expense_category(value: object) -> ExpenseCategory:
-    if isinstance(value, ExpenseCategory):
-        return value
-    if not isinstance(value, str):
-        raise ValidationError("Expense category must be a string.")
-
-    try:
-        return ExpenseCategory(value.strip())
-    except ValueError:
-        valid_values = ", ".join(category.value for category in ExpenseCategory)
-        raise ValidationError(
-            f"Expense category must be one of: {valid_values}."
         ) from None
