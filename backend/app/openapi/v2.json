@@ -3,10 +3,31 @@
   "info": {
     "title": "Expense Tracker V2 API",
     "version": "2.0.0",
-    "description": "Authenticated transaction history and record management, including optional expense context, plus public health and fixed category endpoints."
+    "description": "Authenticated transaction history and record management, including transient AI assisted-entry drafts, plus public health and fixed category endpoints."
   },
   "servers": [{ "url": "/api/v2" }],
   "paths": {
+    "/assisted-entry/text": {
+      "post": {
+        "operationId": "createTextTransactionDraft",
+        "summary": "Create a transient transaction draft from text",
+        "description": "Uses only the submitted text, the server's current Europe/Madrid date, and fixed categories. Does not send transaction history, persist a draft, or create a transaction. The returned fields must be reviewed and saved through POST /transactions.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextDraftRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Transient editable draft and validation notes.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextDraftResponse" } } } },
+          "400": { "description": "Text is blank, over 1,000 characters, or malformed.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationErrorResponse" } } } },
+          "401": { "description": "Authentication is required." },
+          "429": { "description": "The user's AI request limit has been reached.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
+          "502": { "description": "The provider returned malformed or unusable output.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
+          "503": { "description": "The provider is unavailable or safely configured AI is not available.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
+          "504": { "description": "The provider request timed out.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } }
+        }
+      }
+    },
     "/transactions": {
       "get": {
         "operationId": "listTransactions",
@@ -143,6 +164,61 @@
           "reflective_context": { "type": "string", "enum": ["need", "love", "like", "want", null], "nullable": true }
         },
         "additionalProperties": false
+      },
+      "TextDraftRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": { "text": { "type": "string", "minLength": 1, "maxLength": 1000, "example": "I spent €12.50 on lunch today" } },
+        "additionalProperties": false
+      },
+      "TextDraft": {
+        "type": "object",
+        "required": ["transaction_type", "amount", "transaction_date", "category_key", "notes"],
+        "properties": {
+          "transaction_type": { "type": "string", "enum": ["income", "expense", null], "nullable": true },
+          "amount": { "type": "string", "pattern": "^(?:0|[1-9][0-9]{0,11})(?:\\.[0-9]{1,2})?$", "nullable": true },
+          "transaction_date": { "type": "string", "format": "date", "nullable": true },
+          "category_key": { "type": "string", "enum": ["expense_transport", "expense_accommodation", "expense_food", "expense_activities", "expense_other", "income_salary", "income_other", null], "nullable": true },
+          "notes": { "type": "string", "nullable": true }
+        },
+        "additionalProperties": false
+      },
+      "TextDraftUncertainty": {
+        "type": "object",
+        "required": ["field", "reason"],
+        "properties": {
+          "field": { "type": "string", "enum": ["transaction_type", "amount", "transaction_date", "category_key", "notes"] },
+          "reason": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "TextDraftResponse": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["draft", "missing_fields", "uncertainties"],
+            "properties": {
+              "draft": { "$ref": "#/components/schemas/TextDraft" },
+              "missing_fields": { "type": "array", "items": { "type": "string", "enum": ["transaction_type", "amount", "transaction_date", "category_key"] } },
+              "uncertainties": { "type": "array", "items": { "$ref": "#/components/schemas/TextDraftUncertainty" } }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "AIErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["message", "code"],
+            "properties": { "message": { "type": "string" }, "code": { "type": "string" } }
+          }
+        }
       },
       "UpdateTransactionRequest": {
         "type": "object",

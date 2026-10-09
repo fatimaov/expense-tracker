@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
@@ -7,7 +7,7 @@ import AddTransactionPage from './AddTransactionPage.jsx'
 import { transactionService } from '../services/transactionService.js'
 
 vi.mock('../services/transactionService.js', () => ({
-  transactionService: { createTransaction: vi.fn() },
+  transactionService: { createTransaction: vi.fn(), createTextDraft: vi.fn() },
 }))
 
 afterEach(() => {
@@ -106,5 +106,94 @@ describe('AddTransactionPage', () => {
     expect(submit).toBeDisabled()
     expect(transactionService.createTransaction).toHaveBeenCalledTimes(1)
     resolveRequest({ data: {} })
+  })
+
+  it('keeps the full manual form available while the text panel is collapsed', () => {
+    renderPage()
+    expect(screen.getByLabelText('Amount (€)')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Transaction description')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Describe a transaction' })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('rejects blank and over-limit text locally without calling the provider', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Describe a transaction' }))
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+    expect(await screen.findByText('Enter a transaction description.')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Transaction description'), { target: { value: 'x'.repeat(1001) } })
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+    expect(await screen.findByText('Use 1,000 characters or fewer.')).toBeInTheDocument()
+    expect(transactionService.createTextDraft).not.toHaveBeenCalled()
+  })
+
+  it('loads a transient draft into the editable form and saves through normal transaction creation', async () => {
+    const user = userEvent.setup()
+    transactionService.createTextDraft.mockResolvedValue({ data: {
+      draft: { transaction_type: 'expense', amount: '12.50', transaction_date: '2026-10-09', category_key: 'expense_food', notes: 'Lunch', b_u_c: null, reflective_context: null },
+      missing_fields: [], uncertainties: [],
+    } })
+    transactionService.createTransaction.mockResolvedValue({ data: {} })
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Describe a transaction' }))
+    await user.type(screen.getByLabelText('Transaction description'), 'I spent €12.50 on lunch today')
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+
+    expect(await screen.findByText(/Review before saving/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Amount (€)')).toHaveValue('12.50')
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-10-09')
+    expect(screen.getByLabelText('Category')).toHaveValue('expense_food')
+    expect(screen.getByLabelText(/Notes/)).toHaveValue('Lunch')
+    await user.clear(screen.getByLabelText(/Notes/))
+    await user.type(screen.getByLabelText(/Notes/), 'Lunch with Alex')
+    await user.click(screen.getByRole('button', { name: 'Save transaction' }))
+    await waitFor(() => expect(transactionService.createTransaction).toHaveBeenCalledWith(expect.objectContaining({
+      transaction_type: 'expense', amount: '12.50', transaction_date: '2026-10-09',
+      category_key: 'expense_food', notes: 'Lunch with Alex', b_u_c: null, reflective_context: null,
+    })))
+    expect(transactionService.createTextDraft).toHaveBeenCalledWith('I spent €12.50 on lunch today')
+  })
+
+  it('requires confirmation before replacing manual form values and discard restores a blank form', async () => {
+    const user = userEvent.setup()
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    transactionService.createTextDraft.mockResolvedValue({ data: {
+      draft: { transaction_type: 'expense', amount: '12.50', transaction_date: '2026-10-09', category_key: 'expense_food', notes: 'Lunch' },
+      missing_fields: [], uncertainties: [],
+    } })
+    renderPage()
+    await user.type(screen.getByLabelText('Amount (€)'), '99.00')
+    await user.click(screen.getByRole('button', { name: 'Describe a transaction' }))
+    await user.type(screen.getByLabelText('Transaction description'), 'Lunch')
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+    expect(confirm).toHaveBeenCalledOnce()
+    expect(transactionService.createTextDraft).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Amount (€)')).toHaveValue('99.00')
+
+    confirm.mockReturnValue(true)
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+    expect(await screen.findByLabelText('Amount (€)')).toHaveValue('12.50')
+    await user.click(screen.getByRole('button', { name: 'Discard draft' }))
+    expect(screen.getByLabelText('Amount (€)')).toHaveValue('')
+    expect(screen.queryByText(/Review before saving/)).not.toBeInTheDocument()
+  })
+
+  it('preserves typed text and leaves the manual form usable after a safe provider failure', async () => {
+    const user = userEvent.setup()
+    transactionService.createTextDraft.mockRejectedValue({
+      message: 'AI request limit reached. Try again after the current window expires.',
+      data: { error: { message: 'AI request limit reached. Try again after the current window expires.' } },
+    })
+    transactionService.createTransaction.mockResolvedValue({ data: {} })
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Describe a transaction' }))
+    await user.type(screen.getByLabelText('Transaction description'), 'Typed text stays here')
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/enter the transaction manually/i)
+    expect(screen.getByLabelText('Transaction description')).toHaveValue('Typed text stays here')
+    await user.type(screen.getByLabelText('Amount (€)'), '12.50')
+    await user.selectOptions(screen.getByLabelText('Category'), 'expense_food')
+    await user.click(screen.getByRole('button', { name: 'Save transaction' }))
+    await waitFor(() => expect(transactionService.createTransaction).toHaveBeenCalledOnce())
   })
 })

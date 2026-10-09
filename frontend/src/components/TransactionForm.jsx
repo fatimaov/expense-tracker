@@ -42,7 +42,7 @@ function validate(formData) {
   return errors
 }
 
-function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCount = 0, initialValues, typeReadOnly = false, onCancel, submitLabel = 'Save transaction' }) {
+function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCount = 0, initialValues, typeReadOnly = false, onCancel, submitLabel = 'Save transaction', onValuesChange }) {
   const [formData, setFormData] = useState(() => ({
     transaction_type: 'expense',
     amount: '',
@@ -55,7 +55,7 @@ function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCoun
   }))
   const [clientErrors, setClientErrors] = useState({})
   const errors = { ...clientErrors, ...fieldErrors }
-  const categories = CATEGORY_OPTIONS[formData.transaction_type]
+  const categories = CATEGORY_OPTIONS[formData.transaction_type] ?? CATEGORY_OPTIONS.expense
 
   useEffect(() => {
     if (successCount === 0) return
@@ -72,18 +72,22 @@ function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCoun
   }, [successCount])
 
   function setField(name, value) {
-    setFormData((current) => ({ ...current, [name]: value }))
+    const next = { ...formData, [name]: value }
+    setFormData(next)
+    onValuesChange?.(next)
     setClientErrors((current) => ({ ...current, [name]: undefined }))
   }
 
   function handleTypeChange(event) {
     const transaction_type = event.target.value
-    setFormData((current) => ({
-      ...current,
+    const next = {
+      ...formData,
       transaction_type,
       category_key: '',
       ...(transaction_type === 'income' ? { b_u_c: '', reflective_context: '' } : {}),
-    }))
+    }
+    setFormData(next)
+    onValuesChange?.(next)
     setClientErrors((current) => ({ ...current, transaction_type: undefined, category_key: undefined }))
   }
 
