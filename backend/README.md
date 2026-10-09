@@ -4,7 +4,7 @@ Install the backend dependencies from this directory with `pipenv sync --dev`.
 Run the backend test suite with:
 
 ```powershell
-pipenv run pytest
+pipenv run python -m pytest
 ```
 
 The normal API tests use an isolated in-memory SQLite database. The migration
@@ -15,7 +15,7 @@ before running pytest. For example:
 
 ```powershell
 $env:V2_MIGRATION_TEST_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/expense_tracker_migration_test"
-pipenv run pytest
+pipenv run python -m pytest
 ```
 
 ## AI provider boundary (Layer 1)
