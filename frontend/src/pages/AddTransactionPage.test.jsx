@@ -78,6 +78,22 @@ describe('AddTransactionPage', () => {
     expect(screen.getByLabelText(/Notes/)).toHaveValue('Coffee')
   })
 
+  it('sends selected context values when creating an expense', async () => {
+    const user = userEvent.setup()
+    transactionService.createTransaction.mockResolvedValue({ data: {} })
+    renderPage()
+    await user.type(screen.getByLabelText('Amount (€)'), '12.34')
+    await user.selectOptions(screen.getByLabelText('Category'), 'expense_food')
+    await user.selectOptions(screen.getByLabelText(/Spending context/), 'usage')
+    await user.selectOptions(screen.getByLabelText(/Reflective context/), 'like')
+    const selectedDate = screen.getByLabelText('Date').value
+    await user.click(screen.getByRole('button', { name: 'Save transaction' }))
+    await waitFor(() => expect(transactionService.createTransaction).toHaveBeenCalledWith({
+      transaction_type: 'expense', amount: '12.34', transaction_date: selectedDate,
+      category_key: 'expense_food', notes: '', b_u_c: 'usage', reflective_context: 'like',
+    }))
+  })
+
   it('prevents another submission while the first request is pending', async () => {
     const user = userEvent.setup()
     let resolveRequest

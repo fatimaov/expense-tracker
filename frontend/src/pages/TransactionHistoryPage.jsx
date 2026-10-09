@@ -5,6 +5,10 @@ import TransactionNavigation from '../components/TransactionNavigation.jsx'
 import { transactionService } from '../services/transactionService.js'
 
 const PAGE_SIZE = 25
+const CONTEXT_LABELS = {
+  b_u_c: { bill: 'Bill', usage: 'Usage', choice: 'Choice' },
+  reflective_context: { need: 'Need', love: 'Love', like: 'Like', want: 'Want' },
+}
 
 function formatAmount(value) {
   const [whole, fraction = ''] = String(value).split('.')
@@ -114,7 +118,13 @@ function TransactionHistoryPage() {
               <tbody>{rows.map((transaction) => <tr key={transaction.id}>
                 <td>{transaction.transaction_date}</td>
                 <td><span className={`badge ${transaction.transaction_type === 'income' ? 'text-bg-success' : 'text-bg-secondary'}`}>{transaction.transaction_type === 'income' ? 'Income' : 'Expense'}</span></td>
-                <td>{transaction.category_label}</td>
+                <td>
+                  <div>{transaction.category_label}</div>
+                  {(transaction.b_u_c || transaction.reflective_context) && <div className="mt-1 d-flex flex-wrap gap-1">
+                    {transaction.b_u_c && <span className="badge text-bg-light text-dark border">{CONTEXT_LABELS.b_u_c[transaction.b_u_c]}</span>}
+                    {transaction.reflective_context && <span className="badge text-bg-light text-dark border">{CONTEXT_LABELS.reflective_context[transaction.reflective_context]}</span>}
+                  </div>}
+                </td>
                 <td>{transaction.notes || '—'}</td>
                 <td className={`text-end fw-semibold ${transaction.transaction_type === 'income' ? 'text-success' : 'text-danger'}`}>{transaction.transaction_type === 'income' ? '+' : '−'}€{formatAmount(transaction.amount)}</td>
                 <td><div className="d-flex gap-2"><Link className="btn btn-sm btn-outline-primary" to={`/transactions/${transaction.id}/edit`} state={{ scope, page }}>Edit</Link><button className="btn btn-sm btn-outline-danger" type="button" onClick={() => { setDeleteError(''); setSelectedDelete(transaction) }}>Delete</button></div></td>

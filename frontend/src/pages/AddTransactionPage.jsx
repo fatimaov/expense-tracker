@@ -24,7 +24,7 @@ function AddTransactionPage() {
       setSuccessCount((count) => count + 1)
     } catch (requestError) {
       const serverFields = requestError?.data?.error?.fields ?? {}
-      const allowedFields = ['transaction_type', 'amount', 'transaction_date', 'category_key', 'notes']
+      const allowedFields = ['transaction_type', 'amount', 'transaction_date', 'category_key', 'notes', 'b_u_c', 'reflective_context']
       const errors = Object.fromEntries(Object.entries(serverFields).filter(([key]) => allowedFields.includes(key)))
       setFieldErrors(errors)
       if (Object.keys(serverFields).length === 0 || Object.keys(errors).length !== Object.keys(serverFields).length) {
