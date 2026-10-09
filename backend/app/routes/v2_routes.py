@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from flask import Blueprint, jsonify, request, send_file
+from flask import Blueprint, current_app, jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_swagger_ui import get_swaggerui_blueprint
 
@@ -16,13 +16,23 @@ from ..services.transaction_service import (
     serialize_created_transaction,
     update_transaction,
 )
+from ..services.assisted_entry_service import create_text_transaction_draft
+from ..services.ai_request_guard import record_provider_request_start
+from ..ai.config import AISettings
+from ..ai.errors import (
+    AIConfigurationError,
+    AIRateLimitExceededError,
+    AIProviderResponseError,
+    AIProviderTimeoutError,
+    AIProviderUnavailableError,
+    AIUnsupportedSchemaError,
+)
+from ..ai.factory import create_json_generator
 from ..utils import error_response
 
 
 api_v2 = Blueprint("api_v2", __name__, url_prefix="/api/v2")
 OPENAPI_PATH = Path(__file__).resolve().parents[1] / "openapi" / "v2.json"
-
-
 @api_v2.get("/health")
 def health_v2():
     return jsonify(status="ok")
@@ -54,6 +64,40 @@ def create_transaction_v2():
         return error_response(str(error), code, 400, fields)
 
     return jsonify(response_body), status_code
+
+
+@api_v2.post("/assisted-entry/text")
+@jwt_required()
+def create_text_draft_v2():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or set(payload) != {"text"}:
+        return error_response("Provide transaction text.", "VALIDATION_ERROR", 400, {"text": "Enter a transaction description."})
+    text = payload["text"]
+    if not isinstance(text, str) or not text.strip():
+        return error_response("Transaction text is required.", "VALIDATION_ERROR", 400, {"text": "Enter a transaction description."})
+    if len(text) > 1000:
+        return error_response("Transaction text is too long.", "VALIDATION_ERROR", 400, {"text": "Use 1,000 characters or fewer."})
+
+    try:
+        settings = AISettings.from_mapping(current_app.config)
+        generator = create_json_generator(settings)
+        record_provider_request_start(int(get_jwt_identity()))
+        result = create_text_transaction_draft(text, generator)
+    except AIRateLimitExceededError as error:
+        return error_response(str(error), "RATE_LIMIT_EXCEEDED", 429)
+    except AIProviderTimeoutError as error:
+        return error_response(str(error), "AI_PROVIDER_TIMEOUT", 504)
+    except AIProviderResponseError as error:
+        return error_response(str(error), "AI_PROVIDER_INVALID_RESPONSE", 502)
+    except AIProviderUnavailableError as error:
+        return error_response(str(error), "AI_PROVIDER_UNAVAILABLE", 503)
+    except AIConfigurationError as error:
+        return error_response(str(error), "AI_CONFIGURATION_ERROR", 503)
+    except AIUnsupportedSchemaError as error:
+        return error_response(str(error), "AI_CONFIGURATION_ERROR", 503)
+    except ValueError:
+        return error_response("The AI provider returned an unusable transaction draft. Try again or enter the transaction manually.", "AI_PROVIDER_INVALID_RESPONSE", 502)
+    return jsonify(data=result)
 
 
 @api_v2.get("/transactions")
