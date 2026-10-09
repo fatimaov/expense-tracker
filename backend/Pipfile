@@ -16,6 +16,8 @@ tzdata = "*"
 gunicorn = "*"
 flask-admin = "*"
 flask-swagger-ui = "*"
+openai = "*"
+google-genai = "*"
 
 [scripts]
 start = "python run.py"
