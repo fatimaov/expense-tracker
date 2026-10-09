@@ -1,10 +1,10 @@
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from ..extensions import db
@@ -31,6 +31,14 @@ LEGACY_CATEGORY_KEYS = {
 
 
 class TransactionNotFoundError(LookupError):
+    pass
+
+
+class TransactionForbiddenError(PermissionError):
+    pass
+
+
+class StaleTransactionError(RuntimeError):
     pass
 
 
@@ -144,6 +152,156 @@ def serialize_created_transaction(transaction: Transaction) -> dict:
         "created_at": transaction.created_at.isoformat(),
         "updated_at": transaction.updated_at.isoformat(),
     }
+
+
+def get_transaction(transaction_id: int, user_id: int) -> Transaction:
+    transaction = db.session.get(Transaction, transaction_id)
+    if transaction is None or transaction.deleted_at is not None:
+        raise TransactionNotFoundError("Transaction not found.")
+    if transaction.user_id != user_id:
+        raise TransactionForbiddenError("You do not have access to this transaction.")
+    return transaction
+
+
+def list_transactions(user_id: int, scope: str = "current_month", page: int = 1, page_size: int = 25) -> dict:
+    if scope not in {"current_month", "all"}:
+        raise ValidationError("Scope must be current_month or all.", {"scope": "Choose current_month or all."})
+    if isinstance(page, bool) or not isinstance(page, int) or page < 1:
+        raise ValidationError("Page must be a positive integer.", {"page": "Enter a positive integer."})
+    if isinstance(page_size, bool) or not isinstance(page_size, int) or not 1 <= page_size <= 100:
+        raise ValidationError("Page size must be between 1 and 100.", {"page_size": "Choose a value from 1 to 100."})
+
+    today = datetime.now(APP_TIMEZONE).date()
+    first_day = today.replace(day=1)
+    next_month = date(first_day.year + (first_day.month == 12), first_day.month % 12 + 1, 1)
+    base = select(Transaction).where(Transaction.user_id == user_id, Transaction.deleted_at.is_(None))
+    if scope == "current_month":
+        base = base.where(Transaction.transaction_date >= first_day, Transaction.transaction_date < next_month)
+
+    total_records = db.session.scalar(select(func.count()).select_from(base.subquery())) or 0
+    rows = db.session.scalars(
+        base.order_by(Transaction.transaction_date.desc(), Transaction.created_at.desc())
+        .offset((page - 1) * page_size).limit(page_size)
+    ).all()
+
+    summary_query = select(
+        Transaction.transaction_type,
+        func.count(Transaction.id),
+        func.coalesce(func.sum(Transaction.amount), 0),
+    ).where(Transaction.user_id == user_id, Transaction.deleted_at.is_(None))
+    if scope == "current_month":
+        summary_query = summary_query.where(Transaction.transaction_date >= first_day, Transaction.transaction_date < next_month)
+    totals = db.session.execute(summary_query.group_by(Transaction.transaction_type)).all()
+    income = sum((amount for kind, _, amount in totals if kind == "income"), Decimal("0"))
+    expense = sum((amount for kind, _, amount in totals if kind == "expense"), Decimal("0"))
+
+    category_query = select(Category.key, Category.label, Category.transaction_type, func.sum(Transaction.amount)).join(
+        Transaction, Transaction.category_id == Category.id
+    ).where(Transaction.user_id == user_id, Transaction.deleted_at.is_(None))
+    if scope == "current_month":
+        category_query = category_query.where(Transaction.transaction_date >= first_day, Transaction.transaction_date < next_month)
+    category_totals = db.session.execute(category_query.group_by(Category.key, Category.label, Category.transaction_type).order_by(Category.transaction_type, Category.label)).all()
+    return {
+        "data": [serialize_created_transaction(row) for row in rows],
+        "meta": {
+            "pagination": {"page": page, "page_size": page_size, "total_records": total_records, "total_pages": (total_records + page_size - 1) // page_size},
+            "scope": scope,
+            "summary": {
+                "record_count": total_records,
+                "total_income": str(income),
+                "total_expense": str(expense),
+                "category_totals": [
+                    {"category_key": key, "category_label": label, "transaction_type": kind, "total": str(amount)}
+                    for key, label, kind, amount in category_totals
+                ],
+            },
+        },
+    }
+
+
+def update_transaction(transaction_id: int, user_id: int, payload: object, idempotency_key: object) -> tuple[dict, int]:
+    key = _validate_idempotency_key(idempotency_key)
+    replay = _get_idempotency_replay(user_id, key)
+    if replay is not None:
+        return replay
+    if not isinstance(payload, dict):
+        raise ValidationError("Request body must be a valid JSON object.")
+    expected = {"amount", "transaction_date", "category_key", "notes", "updated_at"}
+    fields = {name: "This field is required." for name in expected - payload.keys()}
+    fields.update({name: "This field is not supported." for name in payload.keys() - expected})
+    if fields:
+        raise ValidationError("Request contains missing or unsupported fields.", fields)
+    transaction = get_transaction(transaction_id, user_id)
+    if not isinstance(payload["updated_at"], str) or _parse_timestamp(payload["updated_at"]) != _as_utc(transaction.updated_at):
+        raise StaleTransactionError("This transaction changed elsewhere. Review the latest version and try again.")
+    body = _validate_transaction_payload({
+        "transaction_type": transaction.transaction_type,
+        "amount": payload["amount"],
+        "transaction_date": payload["transaction_date"],
+        "category_key": payload["category_key"],
+        "notes": payload["notes"],
+    })
+    old_month = transaction.transaction_date.strftime("%Y-%m")
+    transaction.amount = body["amount"]
+    transaction.transaction_date = body["transaction_date"]
+    transaction.category = body["category"]
+    transaction.notes = body["notes"]
+    transaction.updated_at = datetime.now(timezone.utc)
+    affected = sorted([old_month, transaction.transaction_date.strftime("%Y-%m")])
+    response_body = {"data": serialize_created_transaction(transaction), "meta": {"affected_period_range": {"from": affected[0], "to": affected[-1]}}}
+    return _save_idempotent_result(user_id, key, response_body, 200)
+
+
+def delete_transaction(transaction_id: int, user_id: int, idempotency_key: object) -> tuple[dict, int]:
+    key = _validate_idempotency_key(idempotency_key)
+    replay = _get_idempotency_replay(user_id, key)
+    if replay is not None:
+        return replay
+    transaction = get_transaction(transaction_id, user_id)
+    month = transaction.transaction_date.strftime("%Y-%m")
+    transaction.deleted_at = datetime.now(timezone.utc)
+    transaction.updated_at = datetime.now(timezone.utc)
+    response_body = {"data": {"id": transaction.id, "deleted": True}, "meta": {"affected_period_range": {"from": month, "to": month}}}
+    return _save_idempotent_result(user_id, key, response_body, 200)
+
+
+def _get_idempotency_replay(user_id: int, key: str) -> tuple[dict, int] | None:
+    existing = db.session.scalar(select(IdempotencyRecord).where(IdempotencyRecord.user_id == user_id, IdempotencyRecord.key == key))
+    if existing is None:
+        return None
+    created_at = existing.created_at
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) - created_at < IDEMPOTENCY_TTL:
+        return existing.response_body, existing.response_status
+    db.session.delete(existing)
+    db.session.flush()
+    return None
+
+
+def _save_idempotent_result(user_id: int, key: str, body: dict, status: int) -> tuple[dict, int]:
+    db.session.add(IdempotencyRecord(user_id=user_id, key=key, response_status=status, response_body=body))
+    try:
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        replay = _get_idempotency_replay(user_id, key)
+        if replay is not None:
+            return replay
+        raise
+    return body, status
+
+
+def _parse_timestamp(value: str) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return _as_utc(parsed)
+
+
+def _as_utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
 
 
 def _validate_transaction_payload(payload: object) -> dict:
