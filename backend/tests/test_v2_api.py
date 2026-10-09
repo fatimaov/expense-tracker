@@ -112,6 +112,8 @@ def test_create_transaction_returns_v2_envelope(client, auth_headers, transactio
         "category_key": category_key,
         "category_label": "Food" if transaction_type == "expense" else "Salary",
         "notes": "Lunch",
+        "b_u_c": None,
+        "reflective_context": None,
         "created_at": body["data"]["created_at"],
         "updated_at": body["data"]["updated_at"],
     }
@@ -133,6 +135,38 @@ def test_create_transaction_replays_original_result_without_duplicate(client, ap
     with app.app_context():
         assert len(db.session.scalars(select(Transaction)).all()) == 1
         assert len(db.session.scalars(select(IdempotencyRecord)).all()) == 1
+
+
+@pytest.mark.parametrize(("context", "expected"), [
+    ({}, {"b_u_c": None, "reflective_context": None}),
+    ({"b_u_c": "bill"}, {"b_u_c": "bill", "reflective_context": None}),
+    ({"reflective_context": "love"}, {"b_u_c": None, "reflective_context": "love"}),
+    ({"b_u_c": "choice", "reflective_context": "want"}, {"b_u_c": "choice", "reflective_context": "want"}),
+    ({"b_u_c": None, "reflective_context": None}, {"b_u_c": None, "reflective_context": None}),
+])
+def test_expense_context_create_and_read_serialization(client, auth_headers, context, expected):
+    import uuid
+    response = client.post("/api/v2/transactions", json={
+        "transaction_type": "expense", "amount": "12.34", "transaction_date": "2026-10-08",
+        "category_key": "expense_food", **context,
+    }, headers={**auth_headers, "Idempotency-Key": str(uuid.uuid4())})
+    assert response.status_code == 201
+    transaction_id = response.get_json()["data"]["id"]
+    assert {key: response.get_json()["data"][key] for key in expected} == expected
+    retrieved = client.get(f"/api/v2/transactions/{transaction_id}", headers=auth_headers).get_json()["data"]
+    listed = client.get("/api/v2/transactions?scope=all", headers=auth_headers).get_json()["data"][0]
+    assert {key: retrieved[key] for key in expected} == expected
+    assert {key: listed[key] for key in expected} == expected
+
+
+@pytest.mark.parametrize(("field", "value"), [("b_u_c", None), ("b_u_c", "bill"), ("reflective_context", "need")])
+def test_income_rejects_any_context_field_even_null(client, auth_headers, field, value):
+    response = client.post("/api/v2/transactions", json={
+        "transaction_type": "income", "amount": "12.34", "transaction_date": "2026-10-08",
+        "category_key": "income_salary", field: value,
+    }, headers={**auth_headers, "Idempotency-Key": "3e3df44c-5ce4-4bd6-b4f2-a2505d250c2f"})
+    assert response.status_code == 400
+    assert field in response.get_json()["error"]["fields"]
 
 
 def test_expired_idempotency_key_can_be_used_again(client, app, auth_headers):
@@ -167,8 +201,10 @@ def test_expired_idempotency_key_can_be_used_again(client, app, auth_headers):
         ({"category_key": "expense_unknown"}, "category_key"),
         ({"transaction_date": "not-a-date"}, "transaction_date"),
         ({"transaction_date": "20261008"}, "transaction_date"),
-        ({"b_u_c": None}, "b_u_c"),
-        ({"reflective_context": "need"}, "reflective_context"),
+        ({"b_u_c": "sometimes"}, "b_u_c"),
+        ({"b_u_c": ["bill", "choice"]}, "b_u_c"),
+        ({"reflective_context": "sometimes"}, "reflective_context"),
+        ({"reflective_context": ["need", "love"]}, "reflective_context"),
         ({"notes": None}, "notes"),
     ],
 )
@@ -321,10 +357,35 @@ def test_update_transaction_validates_stale_state_and_replays_idempotently(clien
         assert transaction.notes == "Updated"
 
 
+def test_update_transaction_changes_and_clears_expense_context(client, auth_headers):
+    data = client.post("/api/v2/transactions", json={
+        "transaction_type": "expense", "amount": "10.00", "transaction_date": "2026-10-08",
+        "category_key": "expense_food", "b_u_c": "bill", "reflective_context": "like",
+    }, headers={**auth_headers, "Idempotency-Key": "2e21c3c8-9c8a-4e0a-9132-ccdf835fac68"}).get_json()["data"]
+    url = f"/api/v2/transactions/{data['id']}"
+    changed = client.put(url, json={
+        "amount": "10.00", "transaction_date": "2026-10-08", "category_key": "expense_food", "notes": "",
+        "b_u_c": "choice", "reflective_context": "need", "updated_at": data["updated_at"],
+    }, headers={**auth_headers, "Idempotency-Key": "dfc56a14-2efb-4812-9707-e1bfe28c930a"})
+    assert changed.status_code == 200
+    assert changed.get_json()["data"]["b_u_c"] == "choice"
+    assert changed.get_json()["data"]["reflective_context"] == "need"
+    latest = changed.get_json()["data"]
+    cleared = client.put(url, json={
+        "amount": "10.00", "transaction_date": "2026-10-08", "category_key": "expense_food", "notes": "",
+        "b_u_c": None, "reflective_context": None, "updated_at": latest["updated_at"],
+    }, headers={**auth_headers, "Idempotency-Key": "a65cd527-9e11-484a-bd5a-2c9331fc5584"})
+    assert cleared.status_code == 200
+    assert cleared.get_json()["data"]["b_u_c"] is None
+    assert cleared.get_json()["data"]["reflective_context"] is None
+
+
 @pytest.mark.parametrize("changes,field", [
     ({"transaction_type": "income"}, "transaction_type"),
-    ({"b_u_c": "bill"}, "b_u_c"),
-    ({"reflective_context": "need"}, "reflective_context"),
+    ({"b_u_c": "sometimes"}, "b_u_c"),
+    ({"b_u_c": ["bill", "usage"]}, "b_u_c"),
+    ({"reflective_context": "sometimes"}, "reflective_context"),
+    ({"reflective_context": ["need", "love"]}, "reflective_context"),
     ({"category_key": "income_salary"}, "category_key"),
     ({"amount": "1.234"}, "amount"),
     ({"transaction_date": (datetime.now(ZoneInfo("Europe/Madrid")) + timedelta(days=2)).date().isoformat()}, "transaction_date"),
@@ -338,6 +399,24 @@ def test_update_transaction_rejects_invalid_fields_without_mutation(client, app,
     assert field in response.get_json()["error"]["fields"]
     with app.app_context():
         assert str(db.session.get(Transaction, data["id"]).amount) == "10.00"
+
+
+@pytest.mark.parametrize(("field", "value"), [("b_u_c", None), ("reflective_context", "want")])
+def test_income_update_rejects_context_fields_without_mutation(client, app, auth_headers, field, value):
+    data = _create_transaction(client, auth_headers, "10.00", "2026-10-08", "income_salary", "income").get_json()["data"]
+    payload = {
+        "amount": "11.00", "transaction_date": "2026-10-07", "category_key": "income_salary",
+        "notes": "Updated", "updated_at": data["updated_at"], field: value,
+    }
+    response = client.put(f"/api/v2/transactions/{data['id']}", json=payload, headers={
+        **auth_headers, "Idempotency-Key": "74fdc5bf-1f1a-4e26-8b0f-72b66ca4166c",
+    })
+    assert response.status_code == 400
+    assert field in response.get_json()["error"]["fields"]
+    with app.app_context():
+        transaction = db.session.get(Transaction, data["id"])
+        assert str(transaction.amount) == "10.00"
+        assert transaction.b_u_c is transaction.reflective_context is None
 
 
 def test_delete_transaction_soft_deletes_and_idempotency_replays(client, app, auth_headers):
@@ -364,3 +443,10 @@ def test_openapi_includes_transaction_history_and_management_contract(client):
     assert "UpdateTransactionRequest" in spec["components"]["schemas"]
     assert "DeleteTransactionResponse" in spec["components"]["schemas"]
     assert "409" in spec["paths"]["/transactions/{transaction_id}"]["put"]["responses"]
+    schemas = spec["components"]["schemas"]
+    for schema_name in ("CreateTransactionRequest", "UpdateTransactionRequest", "Transaction"):
+        properties = schemas[schema_name]["properties"]
+        assert properties["b_u_c"]["enum"] == ["bill", "usage", "choice", None]
+        assert properties["b_u_c"]["nullable"] is True
+        assert properties["reflective_context"]["enum"] == ["need", "love", "like", "want", None]
+        assert properties["reflective_context"]["nullable"] is True

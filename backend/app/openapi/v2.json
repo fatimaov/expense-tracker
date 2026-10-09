@@ -3,7 +3,7 @@
   "info": {
     "title": "Expense Tracker V2 API",
     "version": "2.0.0",
-    "description": "Authenticated transaction history and record management, plus public health and fixed category endpoints."
+    "description": "Authenticated transaction history and record management, including optional expense context, plus public health and fixed category endpoints."
   },
   "servers": [{ "url": "/api/v2" }],
   "paths": {
@@ -26,7 +26,7 @@
       "post": {
         "operationId": "createTransaction",
         "summary": "Create an income or expense transaction",
-        "description": "Creates one transaction for the authenticated user. A repeated Idempotency-Key within 24 hours returns the original successful response.",
+        "description": "Creates one transaction for the authenticated user. Expense requests may include optional b_u_c and reflective_context enum values or null; income requests must omit both fields. A repeated Idempotency-Key within 24 hours returns the original successful response.",
         "security": [{ "BearerAuth": [] }],
         "parameters": [{
           "name": "Idempotency-Key",
@@ -68,7 +68,7 @@
       "put": {
         "operationId": "updateTransaction",
         "summary": "Update an income or expense transaction",
-        "description": "Transaction type is immutable. The submitted updated_at value must match the current record. Context fields are unsupported.",
+        "description": "Transaction type is immutable. The submitted updated_at value must match the current record. For expenses, context fields may be omitted to preserve their current values or set to null to clear them. Income requests must omit context fields.",
         "security": [{ "BearerAuth": [] }],
         "parameters": [{ "name": "Idempotency-Key", "in": "header", "required": true, "schema": { "type": "string", "format": "uuid" } }],
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateTransactionRequest" } } } },
@@ -138,25 +138,30 @@
           "amount": { "type": "string", "pattern": "^(?:0|[1-9][0-9]{0,11})(?:\\.[0-9]{1,2})?$", "example": "12.34" },
           "transaction_date": { "type": "string", "format": "date" },
           "category_key": { "type": "string", "example": "expense_food" },
-          "notes": { "type": "string" }
+          "notes": { "type": "string" },
+          "b_u_c": { "type": "string", "enum": ["bill", "usage", "choice", null], "nullable": true },
+          "reflective_context": { "type": "string", "enum": ["need", "love", "like", "want", null], "nullable": true }
         },
         "additionalProperties": false
       },
       "UpdateTransactionRequest": {
         "type": "object",
+        "description": "Context fields are optional; explicit null clears a stored expense context value.",
         "required": ["amount", "transaction_date", "category_key", "notes", "updated_at"],
         "properties": {
           "amount": { "type": "string", "pattern": "^(?:0|[1-9][0-9]{0,11})(?:\\.[0-9]{1,2})?$" },
           "transaction_date": { "type": "string", "format": "date" },
           "category_key": { "type": "string" },
           "notes": { "type": "string" },
+          "b_u_c": { "type": "string", "enum": ["bill", "usage", "choice", null], "nullable": true },
+          "reflective_context": { "type": "string", "enum": ["need", "love", "like", "want", null], "nullable": true },
           "updated_at": { "type": "string", "format": "date-time" }
         },
         "additionalProperties": false
       },
       "Transaction": {
         "type": "object",
-        "required": ["id", "transaction_type", "amount", "transaction_date", "category_key", "category_label", "notes", "created_at", "updated_at"],
+        "required": ["id", "transaction_type", "amount", "transaction_date", "category_key", "category_label", "notes", "b_u_c", "reflective_context", "created_at", "updated_at"],
         "properties": {
           "id": { "type": "integer" },
           "transaction_type": { "type": "string", "enum": ["income", "expense"] },
@@ -165,6 +170,8 @@
           "category_key": { "type": "string" },
           "category_label": { "type": "string" },
           "notes": { "type": "string", "nullable": true },
+          "b_u_c": { "type": "string", "enum": ["bill", "usage", "choice", null], "nullable": true },
+          "reflective_context": { "type": "string", "enum": ["need", "love", "like", "want", null], "nullable": true },
           "created_at": { "type": "string", "format": "date-time" },
           "updated_at": { "type": "string", "format": "date-time" }
         },
