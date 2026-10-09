@@ -42,7 +42,7 @@ class Config:
     CORS_ORIGINS = _as_list(
         os.getenv("CORS_ORIGINS", "http://localhost:5173")
     )
-    CORS_ALLOW_HEADERS = ["Content-Type", "Authorization"]
+    CORS_ALLOW_HEADERS = ["Content-Type", "Authorization", "Idempotency-Key"]
     CORS_RESOURCES = {r"/api/*": {"origins": CORS_ORIGINS}}
     ADMIN_NAME = os.getenv("ADMIN_NAME", "Expense Tracker Admin")
     ADMIN_URL = os.getenv("ADMIN_URL", "/admin")

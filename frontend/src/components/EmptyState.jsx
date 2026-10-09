@@ -6,7 +6,7 @@ function EmptyState({ onAddExpense }) {
         Add your first expense to start tracking your spending.
       </p>
       <button className="btn btn-primary" type="button" onClick={onAddExpense}>
-        Add Expense
+        Add transaction
       </button>
     </section>
   )

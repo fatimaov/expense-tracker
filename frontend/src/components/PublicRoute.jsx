@@ -7,7 +7,7 @@ function PublicRoute({ children }) {
 
   if (isLoading) return <LoadingState message="Checking your session..." />
 
-  return isAuthenticated ? <Navigate to="/expenses" replace /> : children
+  return isAuthenticated ? <Navigate to="/transactions/new" replace /> : children
 }
 
 export default PublicRoute

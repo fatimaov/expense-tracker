@@ -1,10 +1,14 @@
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
+from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from ..extensions import db
-from ..models import Category, Transaction
+from ..models import Category, IdempotencyRecord, Transaction
 from .validators import ValidationError, validate_expense_date, validate_positive_amount, validate_required_string
 
 
@@ -28,6 +32,12 @@ LEGACY_CATEGORY_KEYS = {
 
 class TransactionNotFoundError(LookupError):
     pass
+
+
+TRANSACTION_AMOUNT_PATTERN = re.compile(r"^(?:0|[1-9][0-9]{0,11})(?:\.[0-9]{1,2})?$")
+TRANSACTION_DATE_PATTERN = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+IDEMPOTENCY_TTL = timedelta(hours=24)
+APP_TIMEZONE = ZoneInfo("Europe/Madrid")
 
 
 def list_categories(transaction_type: str | None = None) -> list[Category]:
@@ -60,6 +70,158 @@ def create_expense(user_id: int, amount: object, title: object, expense_date: ob
     db.session.add(transaction)
     _commit()
     return transaction
+
+
+def create_transaction(user_id: int, payload: object, idempotency_key: object) -> tuple[dict, int]:
+    """Validate and atomically create a V2 transaction with a replayable result."""
+    key = _validate_idempotency_key(idempotency_key)
+    existing = db.session.scalar(select(IdempotencyRecord).where(
+        IdempotencyRecord.user_id == user_id,
+        IdempotencyRecord.key == key,
+    ))
+    if existing is not None:
+        created_at = existing.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) - created_at < IDEMPOTENCY_TTL:
+            return existing.response_body, existing.response_status
+        db.session.delete(existing)
+        db.session.flush()
+
+    body = _validate_transaction_payload(payload)
+
+    transaction = Transaction(
+        user_id=user_id,
+        transaction_type=body["transaction_type"],
+        amount=body["amount"],
+        transaction_date=body["transaction_date"],
+        category=body["category"],
+        notes=body["notes"],
+    )
+    db.session.add(transaction)
+    try:
+        db.session.flush()
+        month = transaction.transaction_date.strftime("%Y-%m")
+        response_body = {
+            "data": serialize_created_transaction(transaction),
+            "meta": {"affected_period_range": {"from": month, "to": month}},
+        }
+        db.session.add(IdempotencyRecord(
+            user_id=user_id,
+            key=key,
+            response_status=201,
+            response_body=response_body,
+        ))
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        replay = db.session.scalar(select(IdempotencyRecord).where(
+            IdempotencyRecord.user_id == user_id,
+            IdempotencyRecord.key == key,
+        ))
+        if replay is not None:
+            created_at = replay.created_at
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) - created_at < IDEMPOTENCY_TTL:
+                return replay.response_body, replay.response_status
+        raise
+    except SQLAlchemyError:
+        db.session.rollback()
+        raise
+    return response_body, 201
+
+
+def serialize_created_transaction(transaction: Transaction) -> dict:
+    return {
+        "id": transaction.id,
+        "transaction_type": transaction.transaction_type,
+        "amount": str(transaction.amount),
+        "transaction_date": transaction.transaction_date.isoformat(),
+        "category_key": transaction.category.key,
+        "category_label": transaction.category.label,
+        "notes": transaction.notes,
+        "created_at": transaction.created_at.isoformat(),
+        "updated_at": transaction.updated_at.isoformat(),
+    }
+
+
+def _validate_transaction_payload(payload: object) -> dict:
+    if not isinstance(payload, dict):
+        raise ValidationError("Request body must be a valid JSON object.")
+
+    allowed = {"transaction_type", "amount", "transaction_date", "category_key", "notes"}
+    fields: dict[str, str] = {}
+    for name in ("b_u_c", "reflective_context"):
+        if name in payload:
+            fields[name] = "This field is not supported by transaction creation."
+    for name in set(payload) - allowed - {"b_u_c", "reflective_context"}:
+        fields[name] = "This field is not supported."
+    for name in ("transaction_type", "amount", "transaction_date", "category_key"):
+        if name not in payload:
+            fields[name] = "This field is required."
+    if fields:
+        raise ValidationError("Request contains missing or unsupported fields.", fields)
+
+    transaction_type = payload["transaction_type"]
+    if not isinstance(transaction_type, str) or transaction_type not in {"income", "expense"}:
+        fields["transaction_type"] = "Select income or expense."
+
+    amount_raw = payload["amount"]
+    amount = None
+    if not isinstance(amount_raw, str) or not TRANSACTION_AMOUNT_PATTERN.fullmatch(amount_raw):
+        fields["amount"] = "Enter a positive amount with up to 12 digits and 2 decimal places."
+    else:
+        try:
+            amount = Decimal(amount_raw)
+            if amount <= 0:
+                fields["amount"] = "Amount must be greater than zero."
+        except InvalidOperation:
+            fields["amount"] = "Enter a valid amount."
+
+    transaction_date = None
+    try:
+        if not isinstance(payload["transaction_date"], str) or not TRANSACTION_DATE_PATTERN.fullmatch(payload["transaction_date"]):
+            raise ValidationError("Transaction date must use YYYY-MM-DD format.")
+        transaction_date = validate_expense_date(payload["transaction_date"])
+        if transaction_date > datetime.now(APP_TIMEZONE).date():
+            fields["transaction_date"] = "Transaction date cannot be in the future."
+    except ValidationError as error:
+        fields["transaction_date"] = str(error)
+
+    category = None
+    category_key = payload["category_key"]
+    if not isinstance(category_key, str):
+        fields["category_key"] = "Choose a valid category."
+    elif isinstance(transaction_type, str) and transaction_type in {"income", "expense"}:
+        try:
+            category = get_category(category_key, transaction_type)
+        except ValidationError as error:
+            fields["category_key"] = str(error)
+
+    notes = payload.get("notes", "")
+    if notes is None or not isinstance(notes, str):
+        fields["notes"] = "Notes must be a string."
+
+    if fields:
+        raise ValidationError("Transaction details are invalid.", fields)
+    return {
+        "transaction_type": transaction_type,
+        "amount": amount,
+        "transaction_date": transaction_date,
+        "category": category,
+        "notes": notes.strip() or None,
+    }
+
+
+def _validate_idempotency_key(value: object) -> str:
+    try:
+        parsed = UUID(value) if isinstance(value, str) else None
+    except (ValueError, AttributeError):
+        parsed = None
+    if parsed is None or parsed.version != 4:
+        raise ValidationError("Idempotency-Key must be a UUID v4.", {"Idempotency-Key": "Provide a UUID v4 key."})
+    return str(parsed)
 
 
 def get_user_expenses(user_id: int) -> list[Transaction]:

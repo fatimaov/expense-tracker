@@ -5,5 +5,9 @@ def error_response(
     message: str,
     code: str,
     status_code: int,
+    fields: dict[str, str] | None = None,
 ) -> tuple[Response, int]:
-    return jsonify(error={"message": message, "code": code}), status_code
+    error = {"message": message, "code": code}
+    if fields:
+        error["fields"] = fields
+    return jsonify(error=error), status_code

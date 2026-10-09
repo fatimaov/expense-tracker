@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router'
 import ProtectedRoute from '../components/ProtectedRoute.jsx'
 import PublicRoute from '../components/PublicRoute.jsx'
 import AddExpensePage from '../pages/AddExpensePage.jsx'
+import AddTransactionPage from '../pages/AddTransactionPage.jsx'
 import EditExpensePage from '../pages/EditExpensePage.jsx'
 import ExpensesPage from '../pages/ExpensesPage.jsx'
 import LoginPage from '../pages/LoginPage.jsx'
@@ -29,6 +30,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <ExpensesPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/transactions/new',
+    element: (
+      <ProtectedRoute>
+        <AddTransactionPage />
       </ProtectedRoute>
     ),
   },

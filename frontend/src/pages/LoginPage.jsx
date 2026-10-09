@@ -17,7 +17,7 @@ function LoginPage() {
 
     try {
       await login({ email, password })
-      navigate('/expenses', { replace: true })
+      navigate('/transactions/new', { replace: true })
     } catch (requestError) {
       setError(requestError.message || 'Unable to log in.')
     } finally {

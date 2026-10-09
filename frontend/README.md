@@ -1,5 +1,8 @@
 # React + Vite
 
+Run the component test suite with `npm run test`. It uses Vitest, jsdom, and
+React Testing Library; tests do not call the API or external services.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:
