@@ -42,14 +42,15 @@ function validate(formData) {
   return errors
 }
 
-function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCount = 0 }) {
-  const [formData, setFormData] = useState({
+function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCount = 0, initialValues, typeReadOnly = false, onCancel, submitLabel = 'Save transaction' }) {
+  const [formData, setFormData] = useState(() => ({
     transaction_type: 'expense',
     amount: '',
     transaction_date: getTodayInMadrid(),
     category_key: '',
-    notes: '',
-  })
+    ...initialValues,
+    notes: initialValues?.notes ?? '',
+  }))
   const [clientErrors, setClientErrors] = useState({})
   const errors = { ...clientErrors, ...fieldErrors }
   const categories = CATEGORY_OPTIONS[formData.transaction_type]
@@ -111,6 +112,7 @@ function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCoun
               value={type}
               checked={formData.transaction_type === type}
               onChange={handleTypeChange}
+              disabled={isSubmitting || typeReadOnly}
             />
             <label className="form-check-label" htmlFor={`transaction-type-${type}`}>
               {type === 'income' ? 'Income' : 'Expense'}
@@ -186,8 +188,9 @@ function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCoun
       </div>
 
       <button className="btn btn-primary" type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Saving...' : 'Save transaction'}
+        {isSubmitting ? 'Saving...' : submitLabel}
       </button>
+      {onCancel && <button className="btn btn-outline-secondary ms-sm-2 mt-2 mt-sm-0" type="button" onClick={onCancel} disabled={isSubmitting}>Cancel</button>}
     </form>
   )
 }
