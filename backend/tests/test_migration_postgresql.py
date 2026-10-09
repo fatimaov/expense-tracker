@@ -47,3 +47,4 @@ def test_fresh_postgresql_upgrade_preserves_mvp_expenses():
         ]
         assert db.session.execute(text("SELECT COUNT(*) FROM categories")).scalar_one() == 7
         assert "expenses" not in set(inspect(db.engine).get_table_names())
+        assert "ai_request_attempts" in set(inspect(db.engine).get_table_names())
