@@ -10,7 +10,7 @@ vi.mock('../services/transactionService.js', () => ({ transactionService: { getT
 
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
-const current = { id: 2, transaction_type: 'expense', amount: '10.00', transaction_date: '2026-10-08', category_key: 'expense_food', category_label: 'Food', notes: 'Lunch', updated_at: '2026-10-08T12:00:00+00:00' }
+const current = { id: 2, transaction_type: 'expense', amount: '10.00', transaction_date: '2026-10-08', category_key: 'expense_food', category_label: 'Food', notes: 'Lunch', b_u_c: 'bill', reflective_context: 'want', updated_at: '2026-10-08T12:00:00+00:00' }
 
 function renderPage() {
   transactionService.getTransaction.mockResolvedValue({ data: current })
@@ -29,6 +29,7 @@ describe('EditTransactionPage', () => {
     await user.click(screen.getByRole('button', { name: 'Save changes' }))
     await waitFor(() => expect(transactionService.updateTransaction).toHaveBeenCalledWith('2', {
       amount: '12.00', transaction_date: '2026-10-08', category_key: 'expense_food', notes: 'Lunch', updated_at: current.updated_at,
+      b_u_c: 'bill', reflective_context: 'want',
     }))
     expect(await screen.findByRole('heading', { name: 'History' })).toBeInTheDocument()
   })
@@ -43,5 +44,18 @@ describe('EditTransactionPage', () => {
     await user.click(screen.getByRole('button', { name: 'Save changes' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('changed elsewhere')
     expect(await screen.findByDisplayValue('15.00')).toBeInTheDocument()
+  })
+
+  it('sends null to clear either optional expense context', async () => {
+    const user = userEvent.setup()
+    transactionService.updateTransaction.mockResolvedValue({})
+    renderPage()
+    await screen.findByDisplayValue('10.00')
+    await user.selectOptions(screen.getByLabelText(/Spending context/), '')
+    await user.selectOptions(screen.getByLabelText(/Reflective context/), '')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(transactionService.updateTransaction).toHaveBeenCalledWith('2', expect.objectContaining({
+      b_u_c: null, reflective_context: null, updated_at: current.updated_at,
+    })))
   })
 })

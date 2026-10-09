@@ -32,13 +32,14 @@ def test_fresh_postgresql_upgrade_preserves_mvp_expenses():
 
         upgrade(directory=migration_dir)
         rows = db.session.execute(text("""
-            SELECT id, amount, transaction_date, notes, created_at, transaction_type
+            SELECT id, amount, transaction_date, notes, created_at, transaction_type, b_u_c, reflective_context
             FROM transactions ORDER BY id
         """)).all()
         assert [row.id for row in rows] == [41, 42]
         assert [row.notes for row in rows] == ["Lunch", "Bus\n\nAirport"]
         assert [str(row.amount) for row in rows] == ["12.30", "8.40"]
         assert [row.transaction_type for row in rows] == ["expense", "expense"]
+        assert [(row.b_u_c, row.reflective_context) for row in rows] == [(None, None), (None, None)]
         assert [str(row.transaction_date) for row in rows] == ["2025-02-03", "2025-02-04"]
         assert rows[0].created_at.astimezone(timezone.utc) == datetime(2025, 2, 3, 10, 11, 12, tzinfo=timezone.utc)
         assert db.session.execute(text("SELECT c.key FROM transactions t JOIN categories c ON c.id = t.category_id ORDER BY t.id")).scalars().all() == [

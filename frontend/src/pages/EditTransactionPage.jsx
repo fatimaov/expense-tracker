@@ -44,6 +44,10 @@ function EditTransactionPage() {
         transaction_date: values.transaction_date,
         category_key: values.category_key,
         notes: values.notes,
+        ...(values.transaction_type === 'expense' ? {
+          b_u_c: values.b_u_c,
+          reflective_context: values.reflective_context,
+        } : {}),
         updated_at: transaction.updated_at,
       })
       navigate('/transactions', { replace: true, state: { successMessage: 'Transaction updated.', ...location.state } })
@@ -69,7 +73,7 @@ function EditTransactionPage() {
     <main className="container py-4">
       <div className="row justify-content-center"><div className="col-12 col-md-8 col-lg-6">
         <h1 className="mb-2">Edit transaction</h1>
-        <p className="text-secondary mb-4">Update amount, date, category, or notes. Transaction type cannot be changed.</p>
+        <p className="text-secondary mb-4">Update amount, date, category, notes, or optional expense context. Transaction type cannot be changed.</p>
         {isLoading && <LoadingState message="Loading transaction..." />}
         {!isLoading && error && !transaction && <div className="alert alert-danger" role="alert"><p>{error}</p><button className="btn btn-outline-danger btn-sm" type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Try again</button></div>}
         {!isLoading && transaction && <>

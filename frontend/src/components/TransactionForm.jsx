@@ -50,6 +50,8 @@ function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCoun
     category_key: '',
     ...initialValues,
     notes: initialValues?.notes ?? '',
+    b_u_c: initialValues?.b_u_c ?? '',
+    reflective_context: initialValues?.reflective_context ?? '',
   }))
   const [clientErrors, setClientErrors] = useState({})
   const errors = { ...clientErrors, ...fieldErrors }
@@ -63,6 +65,8 @@ function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCoun
       transaction_date: getTodayInMadrid(),
       category_key: '',
       notes: '',
+      b_u_c: '',
+      reflective_context: '',
     }))
     setClientErrors({})
   }, [successCount])
@@ -74,7 +78,12 @@ function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCoun
 
   function handleTypeChange(event) {
     const transaction_type = event.target.value
-    setFormData((current) => ({ ...current, transaction_type, category_key: '' }))
+    setFormData((current) => ({
+      ...current,
+      transaction_type,
+      category_key: '',
+      ...(transaction_type === 'income' ? { b_u_c: '', reflective_context: '' } : {}),
+    }))
     setClientErrors((current) => ({ ...current, transaction_type: undefined, category_key: undefined }))
   }
 
@@ -83,7 +92,15 @@ function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCoun
     const nextErrors = validate(formData)
     setClientErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
-    onSubmit({ ...formData })
+    const submission = { ...formData }
+    if (formData.transaction_type === 'expense') {
+      submission.b_u_c = formData.b_u_c || null
+      submission.reflective_context = formData.reflective_context || null
+    } else {
+      delete submission.b_u_c
+      delete submission.reflective_context
+    }
+    onSubmit(submission)
   }
 
   function fieldAttributes(name) {
@@ -170,6 +187,35 @@ function TransactionForm({ onSubmit, isSubmitting, fieldErrors = {}, successCoun
         </select>
         {renderFieldError('category_key')}
       </div>
+
+      {formData.transaction_type === 'expense' && <>
+        <div className="mb-3">
+          <label className="form-label" htmlFor="b_u_c">Spending context <span className="text-secondary">(optional)</span></label>
+          <select className={`form-select${errors.b_u_c ? ' is-invalid' : ''}`} id="b_u_c" name="b_u_c" value={formData.b_u_c} onChange={(event) => setField('b_u_c', event.target.value)} disabled={isSubmitting} aria-invalid={Boolean(errors.b_u_c)} aria-describedby={errors.b_u_c ? 'b_u_c-error' : undefined}>
+            <option value="">Not set</option>
+            <option value="bill">Bill</option>
+            <option value="usage">Usage</option>
+            <option value="choice">Choice</option>
+          </select>
+          {renderFieldError('b_u_c')}
+        </div>
+        <div className="mb-3">
+          <label className="form-label" htmlFor="reflective_context">Reflective context <span className="text-secondary">(optional)</span></label>
+          <select className={`form-select${errors.reflective_context ? ' is-invalid' : ''}`} id="reflective_context" name="reflective_context" value={formData.reflective_context} onChange={(event) => setField('reflective_context', event.target.value)} disabled={isSubmitting} aria-invalid={Boolean(errors.reflective_context)} aria-describedby={errors.reflective_context ? 'reflective_context-error' : undefined}>
+            <option value="">Not set</option>
+            <option value="need">Need</option>
+            <option value="love">Love</option>
+            <option value="like">Like</option>
+            <option value="want">Want</option>
+          </select>
+          {renderFieldError('reflective_context')}
+        </div>
+        <div className="form-text mb-4">
+          <p className="mb-1">Bill is a fixed obligation; Usage varies with use; Choice can be changed.</p>
+          <p className="mb-1">Need supports wellbeing or functioning; Love creates lasting value or joy; Like creates temporary enjoyment; Want is mainly immediate gratification.</p>
+          <p className="mb-0">Both fields are optional descriptive tools, not scores or judgements.</p>
+        </div>
+      </>}
 
       <div className="mb-4">
         <label className="form-label" htmlFor="notes">

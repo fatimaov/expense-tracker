@@ -21,6 +21,10 @@ CATEGORY_SEEDS = (
     ("income_salary", "Salary", "income"),
     ("income_other", "Other", "income"),
 )
+CONTEXT_VALUES = {
+    "b_u_c": {"bill", "usage", "choice"},
+    "reflective_context": {"need", "love", "like", "want"},
+}
 LEGACY_CATEGORY_KEYS = {
     "Transport": "expense_transport",
     "Accommodation": "expense_accommodation",
@@ -105,6 +109,8 @@ def create_transaction(user_id: int, payload: object, idempotency_key: object) -
         transaction_date=body["transaction_date"],
         category=body["category"],
         notes=body["notes"],
+        b_u_c=body["b_u_c"],
+        reflective_context=body["reflective_context"],
     )
     db.session.add(transaction)
     try:
@@ -149,6 +155,8 @@ def serialize_created_transaction(transaction: Transaction) -> dict:
         "category_key": transaction.category.key,
         "category_label": transaction.category.label,
         "notes": transaction.notes,
+        "b_u_c": transaction.b_u_c,
+        "reflective_context": transaction.reflective_context,
         "created_at": transaction.created_at.isoformat(),
         "updated_at": transaction.updated_at.isoformat(),
     }
@@ -226,26 +234,35 @@ def update_transaction(transaction_id: int, user_id: int, payload: object, idemp
         return replay
     if not isinstance(payload, dict):
         raise ValidationError("Request body must be a valid JSON object.")
-    expected = {"amount", "transaction_date", "category_key", "notes", "updated_at"}
-    fields = {name: "This field is required." for name in expected - payload.keys()}
-    fields.update({name: "This field is not supported." for name in payload.keys() - expected})
+    allowed = {"amount", "transaction_date", "category_key", "notes", "updated_at", *CONTEXT_VALUES}
+    required = {"amount", "transaction_date", "category_key", "notes", "updated_at"}
+    fields = {name: "This field is required." for name in required - payload.keys()}
+    fields.update({name: "This field is not supported." for name in payload.keys() - allowed})
     if fields:
         raise ValidationError("Request contains missing or unsupported fields.", fields)
     transaction = get_transaction(transaction_id, user_id)
     if not isinstance(payload["updated_at"], str) or _parse_timestamp(payload["updated_at"]) != _as_utc(transaction.updated_at):
         raise StaleTransactionError("This transaction changed elsewhere. Review the latest version and try again.")
-    body = _validate_transaction_payload({
+    update_payload = {
         "transaction_type": transaction.transaction_type,
         "amount": payload["amount"],
         "transaction_date": payload["transaction_date"],
         "category_key": payload["category_key"],
         "notes": payload["notes"],
-    })
+    }
+    for name in CONTEXT_VALUES:
+        if name in payload:
+            update_payload[name] = payload[name]
+        elif transaction.transaction_type == "expense":
+            update_payload[name] = getattr(transaction, name)
+    body = _validate_transaction_payload(update_payload)
     old_month = transaction.transaction_date.strftime("%Y-%m")
     transaction.amount = body["amount"]
     transaction.transaction_date = body["transaction_date"]
     transaction.category = body["category"]
     transaction.notes = body["notes"]
+    transaction.b_u_c = body["b_u_c"]
+    transaction.reflective_context = body["reflective_context"]
     transaction.updated_at = datetime.now(timezone.utc)
     affected = sorted([old_month, transaction.transaction_date.strftime("%Y-%m")])
     response_body = {"data": serialize_created_transaction(transaction), "meta": {"affected_period_range": {"from": affected[0], "to": affected[-1]}}}
@@ -308,12 +325,9 @@ def _validate_transaction_payload(payload: object) -> dict:
     if not isinstance(payload, dict):
         raise ValidationError("Request body must be a valid JSON object.")
 
-    allowed = {"transaction_type", "amount", "transaction_date", "category_key", "notes"}
+    allowed = {"transaction_type", "amount", "transaction_date", "category_key", "notes", *CONTEXT_VALUES}
     fields: dict[str, str] = {}
-    for name in ("b_u_c", "reflective_context"):
-        if name in payload:
-            fields[name] = "This field is not supported by transaction creation."
-    for name in set(payload) - allowed - {"b_u_c", "reflective_context"}:
+    for name in set(payload) - allowed:
         fields[name] = "This field is not supported."
     for name in ("transaction_type", "amount", "transaction_date", "category_key"):
         if name not in payload:
@@ -324,6 +338,15 @@ def _validate_transaction_payload(payload: object) -> dict:
     transaction_type = payload["transaction_type"]
     if not isinstance(transaction_type, str) or transaction_type not in {"income", "expense"}:
         fields["transaction_type"] = "Select income or expense."
+
+    context_values = {}
+    for name, accepted_values in CONTEXT_VALUES.items():
+        value = payload.get(name)
+        if name in payload and transaction_type != "expense":
+            fields[name] = "Expense context is not supported for income."
+        elif name in payload and value is not None and (not isinstance(value, str) or value not in accepted_values):
+            fields[name] = "Choose one supported context value or leave it unset."
+        context_values[name] = value if isinstance(value, str) and value in accepted_values else None
 
     amount_raw = payload["amount"]
     amount = None
@@ -369,6 +392,7 @@ def _validate_transaction_payload(payload: object) -> dict:
         "transaction_date": transaction_date,
         "category": category,
         "notes": notes.strip() or None,
+        **context_values,
     }
 
 
