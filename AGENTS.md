@@ -10,21 +10,23 @@
 
 - Treat each requested subissue as an independent implementation task, including subissues belonging to a larger weekly-goal issue.
 - Each subissue must be developed in its own feature branch. Do not implement the task directly on `develop`.
-- Create a new subissue branch from the current `develop` branch. If the work depends on unmerged work from another branch, do not silently base on, duplicate, or mix in that work; report the dependency and request direction.
+- Before creating the feature branch, fetch the latest remote refs and make sure the local `develop` branch is up to date with `origin/develop` (or the repository's configured remote equivalent). Update `develop` from the remote when it is behind, then create the feature branch from that updated `develop` tip. Do not update or switch branches in a way that would overwrite or discard existing user changes; if the working tree or branch state makes a safe update unclear, preserve the changes and ask for direction.
+- If the work depends on unmerged work from another branch, do not silently base on, duplicate, or mix in that work; report the dependency and request direction.
 - Name feature branches with the `codex/ft-` prefix followed by a short, descriptive kebab-case name. For example: `codex/ft-add-transaction-endpoint`.
 - Keep a branch focused on one subissue. Do not mix unrelated fixes or cleanup into it.
 
 ## Commits
 
-- Make small, focused commits so the commit history shows how the work was built and can be followed during review.
-- Create a commit when a coherent implementation step is complete, rather than waiting until the entire task is finished.
+- Make a small sequence of meaningful, focused commits so the history shows the main implementation steps and is easy to review. Do not put the entire task into one final commit, and do not create a commit for every individual edit or trivial change.
+- Create a commit when a coherent, reviewable implementation step is complete. A step should group the changes that belong together and leave the project in a sensible state whenever practical.
 - Prefer one concern per commit. Examples include:
-  - adding a migration;
-  - updating a database table or schema;
-  - adding environment variables and documenting them;
-  - adding a service;
-  - adding an endpoint;
-  - adding or updating tests for that step.
+  - installing and configuring a required package (combine these when they form one setup step);
+  - adding a migration or updating a database table/schema;
+  - adding environment variables together with their documentation;
+  - implementing a service or other distinct business-logic layer;
+  - adding an endpoint or route that uses that service;
+  - adding or updating tests alongside the behavior they cover, or as a distinct step when appropriate.
+- Split commits at meaningful boundaries in the actual task; these examples are guides, not a required number or fixed sequence of commits.
 - Use a clear, imperative commit subject and follow the repository's Conventional Commits convention where applicable, such as `feat(api): add transaction endpoint` or `fix(db): handle duplicate transaction ids`.
 - Do not combine generated files, formatting-only changes, refactors, or unrelated bug fixes with a functional change unless they are required for that change.
 - Before handing off the work, verify the branch and commit history, and summarize the purpose of each commit.
@@ -45,11 +47,13 @@ For every subissue, follow this workflow in order:
    - `docs/V2/architecture.md` for shared technical decisions and implementation conventions;
    - the layer document corresponding to the parent weekly issue. For example, a Week 1 subissue uses `docs/V2/layers/01-transaction-foundation.md`, a Week 2 subissue uses `docs/V2/layers/02-cashflow-and-reserve.md`, and so on through the numbered files in `docs/V2/layers/`;
    - any dependency layer documents named in the target layer's `Depends on` section.
-3. Only after the issue and documentation review, create or switch to a dedicated `codex/ft-...` branch for that subissue.
-4. Implement the work in small, focused commits using clear Conventional Commit messages.
-5. Run the relevant automated tests. If no suitable test exists, perform an appropriate smoke test and report exactly what was checked. Verify every acceptance criterion before handoff and map each criterion to its test, smoke-test result, or other verification evidence in the pull request.
-6. Review the final diff and commit history to confirm that the branch contains only the subissue's work and that the commits clearly show how it was built.
-7. Push the feature branch to the remote and set its upstream when needed, for example: `git push -u origin codex/ft-add-transaction-endpoint`.
-8. Open a pull request from the feature branch into `develop`.
-9. Include a brief pull request summary covering what was implemented, how it was tested or smoke-tested, and any relevant follow-up work.
-10. Link the corresponding GitHub subissue in the pull request and include a closing keyword such as `Closes #123`, so that subissue closes automatically when the pull request is merged into `develop`. Do not close the parent weekly-goal issue; reference it separately, for example `Part of #456`.
+3. After confirming the issue and documentation, move the subissue item to the project's `In Progress` column/status. If the item is already there, leave it as is. If the project or item cannot be found or the status cannot be changed, report that and continue only if the implementation itself is otherwise unblocked.
+4. Ensure `develop` is current with the remote as described in Branches, then create or switch to a dedicated `codex/ft-...` branch for that subissue. Do not switch away from or overwrite unrelated user work.
+5. Implement the work in a meaningful sequence of focused commits using clear Conventional Commit messages, following the guidance in Commits.
+6. Run the relevant automated tests. If no suitable test exists, perform an appropriate smoke test and report exactly what was checked. Verify every acceptance criterion before handoff and map each criterion to its test, smoke-test result, or other verification evidence in the pull request.
+7. Review the final diff and commit history to confirm that the branch contains only the subissue's work and that the commits clearly show how it was built.
+8. Push the feature branch to the remote and set its upstream when needed, for example: `git push -u origin codex/ft-add-transaction-endpoint`.
+9. Open a pull request from the feature branch into `develop`.
+10. After opening the pull request, move the corresponding subissue item to the project's `In Review` column/status if GitHub or project automation has not already done so. If it is already in `In Review`, leave it as is. If the project or item cannot be found or the status cannot be changed, report that.
+11. Include a brief pull request summary covering what was implemented, how it was tested or smoke-tested, and any relevant follow-up work.
+12. Link the corresponding GitHub subissue in the pull request and include a closing keyword such as `Closes #123`, so that subissue closes automatically when the pull request is merged into `develop`. Do not close the parent weekly-goal issue; reference it separately, for example `Part of #456`.
