@@ -103,6 +103,29 @@ def test_missing_and_uncertain_values_are_returned_for_review(app):
     assert result["uncertainties"] == [{"field": "transaction_date", "reason": "The date was not stated."}]
 
 
+@pytest.mark.parametrize(("text", "current", "expected"), [
+    ("I paid for lunch yesterday", "2026-10-09", "2026-10-08"),
+    ("I paid for lunch the day before yesterday", "2026-10-09", "2026-10-07"),
+    ("I paid for lunch last Monday", "2026-10-09", "2026-10-05"),
+    ("I paid for lunch last Monday", "2026-10-12", "2026-10-05"),
+    ("I paid for lunch today", "2026-10-09", "2026-10-09"),
+])
+def test_relative_transaction_dates_are_resolved_deterministically(app, text, current, expected):
+    generator = FakeGenerator(provider_response(
+        transaction_date="2026-10-01",
+        uncertainties=[{"field": "transaction_date", "reason": "The model guessed a date."}],
+    ))
+    with app.app_context():
+        result = create_text_transaction_draft(
+            text,
+            generator,
+            datetime.fromisoformat(current).replace(tzinfo=ZoneInfo("Europe/Madrid")),
+        )
+
+    assert result["draft"]["transaction_date"] == expected
+    assert not any(item["field"] == "transaction_date" for item in result["uncertainties"])
+
+
 def test_malformed_provider_shape_is_rejected(app):
     generator = FakeGenerator({"transaction_type": "expense"})
     with app.app_context(), pytest.raises(ValueError):

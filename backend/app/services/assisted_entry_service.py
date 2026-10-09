@@ -1,5 +1,6 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
+import re
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -41,8 +42,62 @@ TEXT_DRAFT_RESPONSE_SCHEMA = {
 SYSTEM_INSTRUCTIONS = (
     "Extract a draft for one one-time income or expense from the user's text. "
     "Use only the supplied fixed categories and current date. Never infer B/U/C or reflective context. "
+    "If the text states an amount, copy its numeric value into amount as a decimal string without a currency symbol "
+    "(for example, 12.50 euros becomes \"12.50\"); never return an empty string for amount. "
+    "Use null only when the amount is genuinely absent or unclear. Resolve relative dates such as yesterday "
+    "from current_date in the supplied evidence and return transaction_date as YYYY-MM-DD. "
+    "Use a matching supplied category key and do not mark a supplied valid key as uncertain. "
     "Set unclear fields to null and explain uncertainty briefly. Return only the requested JSON object."
 )
+
+_RELATIVE_DATE_PATTERN = re.compile(
+    r"\bday before yesterday\b|\byesterday\b|\btoday\b|\blast\s+"
+    r"(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
+    re.IGNORECASE,
+)
+_WEEKDAY_NUMBERS = {
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+}
+
+
+def _resolve_relative_transaction_date(text: str, current_date: date) -> date | None:
+    match = _RELATIVE_DATE_PATTERN.search(text)
+    if match is None:
+        return None
+
+    phrase = match.group(0).casefold()
+    if phrase == "today":
+        return current_date
+    if phrase == "yesterday":
+        return current_date - timedelta(days=1)
+    if phrase == "day before yesterday":
+        return current_date - timedelta(days=2)
+
+    weekday = phrase.split()[-1]
+    days_back = (current_date.weekday() - _WEEKDAY_NUMBERS[weekday]) % 7 or 7
+    return current_date - timedelta(days=days_back)
+
+
+def _apply_deterministic_transaction_date(text: str, proposed: object, current_date: date) -> object:
+    resolved_date = _resolve_relative_transaction_date(text, current_date)
+    if resolved_date is None or not isinstance(proposed, dict) or "transaction_date" not in proposed:
+        return proposed
+
+    corrected = dict(proposed)
+    corrected["transaction_date"] = resolved_date.isoformat()
+    uncertainties = corrected.get("uncertainties")
+    if isinstance(uncertainties, list):
+        corrected["uncertainties"] = [
+            item for item in uncertainties
+            if not isinstance(item, dict) or item.get("field") != "transaction_date"
+        ]
+    return corrected
 
 
 def create_text_transaction_draft(text: str, generator, now: datetime | None = None) -> dict:
@@ -65,6 +120,7 @@ def create_text_transaction_draft(text: str, generator, now: datetime | None = N
         context,
         TEXT_DRAFT_RESPONSE_SCHEMA,
     )
+    proposed = _apply_deterministic_transaction_date(text, proposed, current_date)
     return _validate_provider_draft(proposed, categories, current_date)
 
 
