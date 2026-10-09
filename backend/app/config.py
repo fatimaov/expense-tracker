@@ -3,6 +3,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
+from sqlalchemy.engine import make_url
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -17,9 +18,20 @@ def _as_list(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _sqlalchemy_database_uri(value: str | None) -> str | None:
+    if not value:
+        return value
+    url = make_url(value)
+    if url.drivername == "postgresql":
+        # This project installs psycopg2-binary; SQLAlchemy 2.1 changed the
+        # generic postgresql:// default to psycopg 3.
+        url = url.set(drivername="postgresql+psycopg2")
+    return url.render_as_string(hide_password=False)
+
+
 class Config:
     DATABASE_URL = os.getenv("DATABASE_URL")
-    SQLALCHEMY_DATABASE_URI = DATABASE_URL
+    SQLALCHEMY_DATABASE_URI = _sqlalchemy_database_uri(DATABASE_URL)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)

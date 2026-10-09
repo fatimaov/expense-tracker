@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..extensions import db
 
 if TYPE_CHECKING:
-    from .expense import Expense
+    from .transaction import Transaction
 
 
 class User(db.Model):
@@ -22,4 +22,6 @@ class User(db.Model):
         nullable=False,
     )
 
-    expenses: Mapped[list["Expense"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
