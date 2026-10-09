@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import TransactionForm from '../components/TransactionForm.jsx'
+import TransactionNavigation from '../components/TransactionNavigation.jsx'
 import { transactionService } from '../services/transactionService.js'
 
 function AddTransactionPage() {
@@ -36,6 +37,8 @@ function AddTransactionPage() {
   }
 
   return (
+    <>
+    <TransactionNavigation />
     <main className="container py-4">
       <div className="row justify-content-center">
         <div className="col-12 col-md-8 col-lg-6">
@@ -54,6 +57,7 @@ function AddTransactionPage() {
         </div>
       </div>
     </main>
+    </>
   )
 }
 
