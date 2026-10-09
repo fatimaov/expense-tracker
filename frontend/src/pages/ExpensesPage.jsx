@@ -60,11 +60,9 @@ function ExpensesPage() {
           <div className="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-3 mb-4">
             <h1 className="mb-0">Expenses</h1>
             <div className="d-grid d-sm-flex gap-2">
-              {!isLoading && !error && expenses.length > 0 && (
-                <Link className="btn btn-primary" to="/expenses/new">
-                  Add Expense
-                </Link>
-              )}
+              <Link className="btn btn-primary" to="/transactions/new">
+                Add transaction
+              </Link>
               <button
                 className="btn btn-outline-secondary"
                 type="button"
@@ -91,7 +89,7 @@ function ExpensesPage() {
           )}
 
           {!isLoading && !error && expenses.length === 0 && (
-            <EmptyState onAddExpense={() => navigate('/expenses/new')} />
+            <EmptyState onAddExpense={() => navigate('/transactions/new')} />
           )}
 
           {!isLoading && !error && expenses.length > 0 && (

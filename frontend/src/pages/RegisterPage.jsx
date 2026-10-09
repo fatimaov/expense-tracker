@@ -17,7 +17,7 @@ function RegisterPage() {
 
     try {
       await register({ email, password })
-      navigate('/expenses', { replace: true })
+      navigate('/transactions/new', { replace: true })
     } catch (requestError) {
       setError(requestError.message || 'Unable to register.')
     } finally {
