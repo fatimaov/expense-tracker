@@ -10,6 +10,12 @@ function createTransaction(transaction) {
   })
 }
 
+function createTextDraft(text) {
+  return apiClient.post('/v2/assisted-entry/text', { text }, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  })
+}
+
 function getTransactions({ scope = 'current_month', page = 1, pageSize = 25 } = {}) {
   const params = new URLSearchParams({ scope, page: String(page), page_size: String(pageSize) })
   return apiClient.get(`/v2/transactions?${params}`, {
@@ -41,4 +47,4 @@ function deleteTransaction(id) {
   })
 }
 
-export const transactionService = { createTransaction, getTransactions, getTransaction, updateTransaction, deleteTransaction }
+export const transactionService = { createTransaction, createTextDraft, getTransactions, getTransaction, updateTransaction, deleteTransaction }
