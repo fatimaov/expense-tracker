@@ -11,6 +11,10 @@ EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 class ValidationError(ValueError):
     """Raised when service input fails validation."""
 
+    def __init__(self, message: str, fields: dict[str, str] | None = None):
+        super().__init__(message)
+        self.fields = fields or {}
+
 
 def validate_required_string(value: object, field_name: str) -> str:
     if not isinstance(value, str):

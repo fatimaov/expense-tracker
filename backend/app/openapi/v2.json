@@ -3,10 +3,40 @@
   "info": {
     "title": "Expense Tracker V2 API",
     "version": "2.0.0",
-    "description": "Public health and fixed category endpoints for V2."
+    "description": "V2 transaction creation and public health and fixed category endpoints."
   },
   "servers": [{ "url": "/api/v2" }],
   "paths": {
+    "/transactions": {
+      "post": {
+        "operationId": "createTransaction",
+        "summary": "Create an income or expense transaction",
+        "description": "Creates one transaction for the authenticated user. A repeated Idempotency-Key within 24 hours returns the original successful response.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "description": "A fresh UUID v4 for each new submission.",
+          "schema": { "type": "string", "format": "uuid" }
+        }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateTransactionRequest" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Transaction created, or original success returned for a repeated key.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateTransactionResponse" } } }
+          },
+          "400": {
+            "description": "Invalid transaction fields or idempotency key.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationErrorResponse" } } }
+          },
+          "401": { "description": "Authentication is required." }
+        }
+      }
+    },
     "/health": {
       "get": {
         "operationId": "getHealth",
@@ -37,7 +67,73 @@
     }
   },
   "components": {
+    "securitySchemes": {
+      "BearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
     "schemas": {
+      "CreateTransactionRequest": {
+        "type": "object",
+        "required": ["transaction_type", "amount", "transaction_date", "category_key"],
+        "properties": {
+          "transaction_type": { "type": "string", "enum": ["income", "expense"] },
+          "amount": { "type": "string", "pattern": "^(?:0|[1-9][0-9]{0,11})(?:\\.[0-9]{1,2})?$", "example": "12.34" },
+          "transaction_date": { "type": "string", "format": "date" },
+          "category_key": { "type": "string", "example": "expense_food" },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "Transaction": {
+        "type": "object",
+        "required": ["id", "transaction_type", "amount", "transaction_date", "category_key", "category_label", "notes", "created_at", "updated_at"],
+        "properties": {
+          "id": { "type": "integer" },
+          "transaction_type": { "type": "string", "enum": ["income", "expense"] },
+          "amount": { "type": "string", "example": "12.34" },
+          "transaction_date": { "type": "string", "format": "date" },
+          "category_key": { "type": "string" },
+          "category_label": { "type": "string" },
+          "notes": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": false
+      },
+      "CreateTransactionResponse": {
+        "type": "object",
+        "required": ["data", "meta"],
+        "properties": {
+          "data": { "$ref": "#/components/schemas/Transaction" },
+          "meta": {
+            "type": "object",
+            "required": ["affected_period_range"],
+            "properties": { "affected_period_range": { "$ref": "#/components/schemas/AffectedPeriodRange" } },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "AffectedPeriodRange": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": { "from": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}$" }, "to": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}$" } },
+        "additionalProperties": false
+      },
+      "ValidationErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["message", "code"],
+            "properties": {
+              "message": { "type": "string" },
+              "code": { "type": "string", "enum": ["VALIDATION_ERROR", "IDEMPOTENCY_KEY_REQUIRED"] },
+              "fields": { "type": "object", "additionalProperties": { "type": "string" } }
+            }
+          }
+        }
+      },
       "HealthResponse": {
         "type": "object",
         "required": ["status"],
