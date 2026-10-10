@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
@@ -12,8 +12,23 @@ vi.mock('../services/transactionService.js', () => ({
 
 afterEach(() => {
   cleanup()
+  delete globalThis.SpeechRecognition
+  delete globalThis.webkitSpeechRecognition
+  vi.useRealTimers()
   vi.clearAllMocks()
 })
+
+function installSpeechRecognition() {
+  const instances = []
+  class MockSpeechRecognition {
+    start = vi.fn()
+    stop = vi.fn(() => this.onend?.())
+    abort = vi.fn()
+    constructor() { instances.push(this) }
+  }
+  globalThis.SpeechRecognition = MockSpeechRecognition
+  return instances
+}
 
 function renderPage() {
   return render(
@@ -294,5 +309,80 @@ describe('AddTransactionPage', () => {
     await user.selectOptions(screen.getByLabelText('Category'), 'expense_food')
     await user.click(screen.getByRole('button', { name: 'Save transaction' }))
     await waitFor(() => expect(transactionService.createTransaction).toHaveBeenCalledOnce())
+  })
+
+  it('appends final speech to existing editable text and never creates a draft automatically', async () => {
+    const instances = installSpeechRecognition()
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Describe a transaction' }))
+    const text = screen.getByLabelText('Transaction description')
+    await user.type(text, 'Lunch with Sam')
+    await user.click(screen.getByRole('button', { name: 'Start microphone' }))
+    expect(screen.getByText(/Listening\. Speak now/)).toBeInTheDocument()
+    expect(instances[0].start).toHaveBeenCalledOnce()
+    act(() => instances[0].onresult({ resultIndex: 0, results: [{ isFinal: false, 0: { transcript: 'ignored interim' } }, { isFinal: true, 0: { transcript: 'and coffee' } }] }))
+    expect(text).toHaveValue('Lunch with Sam. and coffee')
+    expect(transactionService.createTextDraft).not.toHaveBeenCalled()
+    expect(transactionService.createReceiptDraft).not.toHaveBeenCalled()
+    expect(transactionService.createTransaction).not.toHaveBeenCalled()
+    await user.clear(text)
+    await user.type(text, 'Corrected transcript')
+    expect(text).toHaveValue('Corrected transcript')
+  })
+
+  it('supports manual stop, no-speech and permission errors while preserving text', async () => {
+    const instances = installSpeechRecognition()
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Describe a transaction' }))
+    const text = screen.getByLabelText('Transaction description')
+    await user.type(text, 'Already entered')
+    await user.click(screen.getByRole('button', { name: 'Start microphone' }))
+    await user.click(screen.getByRole('button', { name: 'Stop listening' }))
+    expect(instances[0].stop).toHaveBeenCalledOnce()
+    expect(text).toHaveValue('Already entered')
+    expect(screen.getByText(/Speech recognition ended\. Review or edit/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Start microphone' }))
+    act(() => instances[1].onerror({ error: 'no-speech' }))
+    expect(await screen.findByText(/No speech was detected/)).toBeInTheDocument()
+    expect(text).toHaveValue('Already entered')
+
+    await user.click(screen.getByRole('button', { name: 'Start microphone' }))
+    act(() => instances[2].onerror({ error: 'not-allowed' }))
+    expect(screen.getByText(/permission was denied/i)).toBeInTheDocument()
+    expect(screen.getByLabelText('Amount (€)')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Start microphone' }))
+    act(() => instances[3].onerror({ error: 'network' }))
+    expect(screen.getByText(/Speech recognition failed/)).toBeInTheDocument()
+    expect(text).toHaveValue('Already entered')
+  })
+
+  it('stops recognition after 60 seconds and keeps the typed transcript and manual form', async () => {
+    installSpeechRecognition()
+    vi.useFakeTimers()
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Describe a transaction' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start microphone' }))
+    expect(screen.getByText(/Listening\. Speak now/)).toBeInTheDocument()
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(screen.getByText(/60-second listening limit/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start microphone' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Transaction description')).toBeInTheDocument()
+    expect(screen.getByLabelText('Amount (€)')).toBeInTheDocument()
+  })
+
+  it('explains unsupported browsers and keeps both text and manual entry available', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Describe a transaction' }))
+    expect(screen.queryByRole('button', { name: /microphone|listening/i })).not.toBeInTheDocument()
+    expect(screen.getByText(/Speech recognition is not available in this browser/)).toBeInTheDocument()
+    expect(screen.getByText(/may use an external speech service/)).toBeInTheDocument()
+    expect(screen.getByText(/does not record or retain audio/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Transaction description')).toBeInTheDocument()
+    expect(screen.getByLabelText('Amount (€)')).toBeInTheDocument()
   })
 })
