@@ -4,9 +4,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import CompanionPage from './CompanionPage.jsx'
 import { companionService } from '../services/companionService.js'
+import { transactionService } from '../services/transactionService.js'
 
 vi.mock('../services/companionService.js', () => ({
-  companionService: { queryCompanion: vi.fn() },
+  companionService: { queryCompanion: vi.fn(), reviewCompanionProposal: vi.fn() },
+}))
+vi.mock('../services/transactionService.js', () => ({
+  transactionService: { updateTransaction: vi.fn(), deleteTransaction: vi.fn() },
 }))
 
 afterEach(() => { cleanup(); vi.clearAllMocks() })
@@ -18,6 +22,34 @@ function answer(message, scope = 'current_month') {
     evidence: {
       scope, timezone: 'Europe/Madrid', period: { start: '2026-10-01', end_exclusive: '2026-11-01' },
       included_record_count: 1, total: { expense: '12.50' }, exclusions: { soft_deleted: 1 }, warnings: ['Some expenses are missing optional context.'],
+    },
+  } }
+}
+
+function matchingAnswer(message = 'I found one matching record.') {
+  return { data: {
+    kind: 'answer', message, scope: 'current_month',
+    period: { start: '2026-10-01', end_exclusive: '2026-11-01' },
+    evidence: {
+      scope: 'current_month', timezone: 'Europe/Madrid',
+      period: { start: '2026-10-01', end_exclusive: '2026-11-01' },
+      matching_count: 1, truncated: false, exclusions: {}, warnings: [],
+      records: [{ id: 9, transaction_type: 'expense', amount: '12.50', transaction_date: '2026-10-08', category_key: 'expense_food', category_label: 'Food', notes: 'Lunch', b_u_c: null, reflective_context: null }],
+    },
+  } }
+}
+
+function proposal(operation = 'edit_transaction', fields = ['amount'], values = { amount: '15.00' }) {
+  return { data: {
+    kind: 'proposal', message: 'I prepared the requested change for review.', scope: 'current_month',
+    period: { start: '2026-10-01', end_exclusive: '2026-11-01' },
+    evidence: { scope: 'current_month', timezone: 'Europe/Madrid', period: { start: '2026-10-01', end_exclusive: '2026-11-01' }, exclusions: {}, warnings: [], target_transaction: {} },
+    proposal: {
+      operation, target_transaction_id: 9, affected_fields: fields,
+      current_record: { id: 9, transaction_type: 'expense', amount: '12.50', transaction_date: '2026-10-08', category_key: 'expense_food', category_label: 'Food', notes: 'Lunch', b_u_c: null, reflective_context: null, updated_at: '2026-10-08T10:00:00+00:00' },
+      proposed_values: values, uncertainty: 'The request was clear.',
+      expected_effect: { kind: 'financial_change', monthly_deltas: [{ month: '2026-10', income_delta: '0.00', expense_delta: '2.50', net_delta: '-2.50', category_deltas: [{ category_key: 'expense_food', delta: '2.50' }] }] },
+      proposal_version: '2026-10-08T10:00:00+00:00',
     },
   } }
 }
@@ -94,5 +126,128 @@ describe('CompanionPage', () => {
     await waitFor(() => expect(companionService.queryCompanion).toHaveBeenCalledWith('x'.repeat(1000), 'current_month'))
     resolveRequest(answer('Done.'))
     expect(await screen.findByText('Done.')).toBeInTheDocument()
+  })
+
+  it('selects one matching result and shows a transient reviewable proposal', async () => {
+    const user = userEvent.setup()
+    companionService.queryCompanion.mockResolvedValueOnce(matchingAnswer()).mockResolvedValueOnce(proposal())
+    renderPage()
+    await user.type(screen.getByLabelText('Question'), 'Find records matching: lunch')
+    await user.click(screen.getByRole('button', { name: 'Ask Companion' }))
+    await screen.findByText('I found one matching record.')
+    await user.click(screen.getByText('Evidence and limitations'))
+    await user.click(screen.getByRole('button', { name: 'Prepare a change' }))
+    expect(screen.getByText(/record #9/)).toBeInTheDocument()
+    expect(screen.getByText(/change the amount to €18\.50/i)).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Question'), 'Change the amount to €15')
+    await user.click(screen.getByRole('button', { name: 'Ask for a change' }))
+    expect(await screen.findByRole('region', { name: 'Companion proposal' })).toBeInTheDocument()
+    expect(screen.getByText(/No change has been applied/)).toBeInTheDocument()
+    expect(screen.getByText(/Proposal version/)).toBeInTheDocument()
+    expect(companionService.queryCompanion).toHaveBeenNthCalledWith(2, 'Change the amount to €15', 'current_month', 9)
+    expect(transactionService.updateTransaction).not.toHaveBeenCalled()
+    expect(transactionService.deleteTransaction).not.toHaveBeenCalled()
+  })
+
+  it('edits an edit proposal and confirms through the normal update command with the captured version', async () => {
+    const user = userEvent.setup()
+    companionService.queryCompanion.mockResolvedValueOnce(matchingAnswer()).mockResolvedValueOnce(proposal())
+      .mockResolvedValueOnce(matchingAnswer('The updated transaction is no longer in this match.'))
+    companionService.reviewCompanionProposal.mockResolvedValue(proposal('edit_transaction', ['amount'], { amount: '16.25' }))
+    const reviewed = proposal('edit_transaction', ['amount'], { amount: '16.25' }).data
+    reviewed.proposal.expected_effect.monthly_deltas[0].expense_delta = '3.75'
+    reviewed.proposal.expected_effect.monthly_deltas[0].net_delta = '-3.75'
+    companionService.reviewCompanionProposal.mockResolvedValue({ data: reviewed })
+    transactionService.updateTransaction.mockResolvedValue({ data: {} })
+    renderPage()
+    await user.type(screen.getByLabelText('Question'), 'Find records matching: lunch')
+    await user.click(screen.getByRole('button', { name: 'Ask Companion' }))
+    await screen.findByText('I found one matching record.')
+    await user.click(screen.getByText('Evidence and limitations'))
+    await user.click(screen.getByRole('button', { name: 'Prepare a change' }))
+    await user.type(screen.getByLabelText('Question'), 'Change the amount')
+    await user.click(screen.getByRole('button', { name: 'Ask for a change' }))
+    await screen.findByRole('region', { name: 'Companion proposal' })
+    await user.click(screen.getByRole('button', { name: 'Edit proposal' }))
+    const amount = screen.getByLabelText('Amount')
+    await user.clear(amount)
+    await user.type(amount, '16.25')
+    await user.click(screen.getByRole('button', { name: 'Save proposal edits' }))
+    await waitFor(() => expect(companionService.reviewCompanionProposal).toHaveBeenCalledWith('Change the amount', 'current_month', expect.objectContaining({ proposed_values: { amount: '16.25' } })))
+    expect(screen.getByText(/expenses \+€3.75/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Confirm change' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('confirmed successfully')
+    expect(transactionService.updateTransaction).toHaveBeenCalledWith(9, {
+      amount: '16.25', transaction_date: '2026-10-08', category_key: 'expense_food', notes: 'Lunch',
+      b_u_c: null, reflective_context: null, updated_at: '2026-10-08T10:00:00+00:00',
+    })
+    expect(companionService.queryCompanion).toHaveBeenNthCalledWith(3, 'Find records matching: lunch', 'current_month')
+    expect(screen.getByText('The updated transaction is no longer in this match.')).toBeInTheDocument()
+  })
+
+  it('does not let users edit delete proposals and requires confirmation before replacing any proposal', async () => {
+    const user = userEvent.setup()
+    companionService.queryCompanion.mockResolvedValueOnce(matchingAnswer()).mockResolvedValueOnce(proposal('soft_delete_transaction', [], {}))
+    renderPage()
+    await user.type(screen.getByLabelText('Question'), 'Find records matching: lunch')
+    await user.click(screen.getByRole('button', { name: 'Ask Companion' }))
+    await screen.findByText('I found one matching record.')
+    await user.click(screen.getByText('Evidence and limitations'))
+    await user.click(screen.getByRole('button', { name: 'Prepare a change' }))
+    await user.type(screen.getByLabelText('Question'), 'Delete this record')
+    await user.click(screen.getByRole('button', { name: 'Ask for a change' }))
+    await screen.findByRole('region', { name: 'Companion proposal' })
+    expect(screen.queryByRole('button', { name: 'Edit proposal' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Confirm deletion' })).toBeInTheDocument()
+    await user.clear(screen.getByLabelText('Question'))
+    await user.type(screen.getByLabelText('Question'), 'Another request')
+    await user.click(screen.getByRole('button', { name: 'Ask for a change' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Discard the active proposal')
+    expect(companionService.queryCompanion).toHaveBeenCalledTimes(2)
+    await user.click(screen.getByRole('button', { name: 'Keep proposal' }))
+    expect(screen.getByRole('button', { name: 'Confirm deletion' })).toBeInTheDocument()
+  })
+
+  it('confirms a delete proposal only through the normal soft-delete command', async () => {
+    const user = userEvent.setup()
+    companionService.queryCompanion.mockResolvedValueOnce(matchingAnswer()).mockResolvedValueOnce(proposal('soft_delete_transaction', [], {}))
+      .mockResolvedValueOnce(matchingAnswer('No matching records remain.'))
+    transactionService.deleteTransaction.mockResolvedValue({ data: { deleted: true } })
+    renderPage()
+    await user.type(screen.getByLabelText('Question'), 'Find records matching: lunch')
+    await user.click(screen.getByRole('button', { name: 'Ask Companion' }))
+    await screen.findByText('I found one matching record.')
+    await user.click(screen.getByText('Evidence and limitations'))
+    await user.click(screen.getByRole('button', { name: 'Prepare a change' }))
+    await user.type(screen.getByLabelText('Question'), 'Delete this record')
+    await user.click(screen.getByRole('button', { name: 'Ask for a change' }))
+    await screen.findByRole('region', { name: 'Companion proposal' })
+    await user.click(screen.getByRole('button', { name: 'Confirm deletion' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('confirmed successfully')
+    expect(transactionService.deleteTransaction).toHaveBeenCalledWith(9)
+    expect(transactionService.updateTransaction).not.toHaveBeenCalled()
+    expect(companionService.queryCompanion).toHaveBeenNthCalledWith(3, 'Find records matching: lunch', 'current_month')
+    expect(await screen.findByText('No matching records remain.')).toBeInTheDocument()
+  })
+
+  it('discards a stale proposal and refreshes the bounded matching evidence', async () => {
+    const user = userEvent.setup()
+    companionService.queryCompanion.mockResolvedValueOnce(matchingAnswer()).mockResolvedValueOnce(proposal())
+      .mockResolvedValueOnce(matchingAnswer('The selected record has changed.'))
+    transactionService.updateTransaction.mockRejectedValue({ status: 409, message: 'Conflict' })
+    renderPage()
+    await user.type(screen.getByLabelText('Question'), 'Find records matching: lunch')
+    await user.click(screen.getByRole('button', { name: 'Ask Companion' }))
+    await screen.findByText('I found one matching record.')
+    await user.click(screen.getByText('Evidence and limitations'))
+    await user.click(screen.getByRole('button', { name: 'Prepare a change' }))
+    await user.type(screen.getByLabelText('Question'), 'Change the amount')
+    await user.click(screen.getByRole('button', { name: 'Ask for a change' }))
+    await screen.findByRole('region', { name: 'Companion proposal' })
+    await user.click(screen.getByRole('button', { name: 'Confirm change' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('changed since the proposal')
+    expect(screen.queryByRole('region', { name: 'Companion proposal' })).not.toBeInTheDocument()
+    expect(await screen.findByText('The selected record has changed.')).toBeInTheDocument()
+    expect(companionService.queryCompanion).toHaveBeenNthCalledWith(3, 'Find records matching: lunch', 'current_month')
   })
 })

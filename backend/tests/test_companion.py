@@ -5,10 +5,11 @@ import pytest
 from sqlalchemy import select
 
 from app.extensions import db
-from app.models import Category, Transaction
+from app.models import Category, Transaction, User
 from app.routes import v2_routes
 from app.services.companion_service import build_companion_evidence, validate_companion_response
 from app.services.transaction_evidence_service import TransactionEvidenceService
+from app.services.companion_proposal_service import calculate_expected_effect
 
 
 NOW = datetime(2026, 10, 10, 12, tzinfo=ZoneInfo("Europe/Madrid"))
@@ -242,3 +243,275 @@ def test_companion_openapi_documents_authenticated_answer_contract(client):
     assert operation["requestBody"]["content"]["application/json"]["schema"]["$ref"].endswith("CompanionQueryRequest")
     assert "CompanionAnswer" in spec["components"]["schemas"]
     assert "CompanionClarification" in spec["components"]["schemas"]
+    assert "CompanionProposalResponse" in spec["components"]["schemas"]
+    assert "target_transaction_id" in spec["components"]["schemas"]["CompanionQueryRequest"]["properties"]
+    assert "proposal_review" in spec["components"]["schemas"]["CompanionQueryRequest"]["properties"]
+    assert "/companion/confirm" not in spec["paths"]
+
+
+def proposal_response(target_id, operation="edit_transaction", fields=None, values=None):
+    return {
+        "kind": "proposal",
+        "message": "I prepared the requested change for review.",
+        "missing_or_ambiguous_information": None,
+        "proposal": {
+            "operation": operation,
+            "target_transaction_id": target_id,
+            "affected_fields": fields if fields is not None else ["amount"],
+            "proposed_values": values if values is not None else {"amount": "15.00"},
+            "uncertainty": "The requested amount was clear.",
+        },
+    }
+
+
+def test_targeted_companion_returns_transient_proposal_with_deterministic_effect(client, auth_headers, app, companion_rows, monkeypatch):
+    provider = FakeGenerator(proposal_response(companion_rows["grocery"]))
+    monkeypatch.setattr(v2_routes, "TransactionEvidenceService", lambda: fixed_service())
+    monkeypatch.setattr(v2_routes, "create_json_generator", lambda settings: provider)
+    monkeypatch.setattr(v2_routes, "record_provider_request_start", lambda user_id: None)
+
+    response = client.post("/api/v2/companion/query", json={
+        "question": "Please suggest an edit for this record.",
+        "scope": "current_month",
+        "target_transaction_id": companion_rows["grocery"],
+    }, headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.get_json()["data"]
+    proposal = data["proposal"]
+    assert data["kind"] == "proposal"
+    assert proposal["target_transaction_id"] == companion_rows["grocery"]
+    assert proposal["proposal_version"] == proposal["current_record"]["updated_at"]
+    assert proposal["proposed_values"] == {"amount": "15.00"}
+    assert proposal["expected_effect"]["monthly_deltas"] == [{
+        "month": "2026-10", "income_delta": "0.00", "expense_delta": "2.50", "net_delta": "-2.50",
+        "category_deltas": [{"category_key": "expense_food", "delta": "2.50"}],
+    }]
+    assert set(provider.call[2]) == {"scope", "timezone", "period", "exclusions", "warnings", "target_transaction"}
+    assert "Old shop" not in str(provider.call[2])
+    with app.app_context():
+        stored = db.session.get(Transaction, companion_rows["grocery"])
+        assert str(stored.amount) == "12.50"
+        assert stored.deleted_at is None
+
+
+def test_explicit_amount_change_builds_reviewable_proposal_without_provider(client, auth_headers, app, companion_rows, monkeypatch):
+    monkeypatch.setattr(v2_routes, "TransactionEvidenceService", lambda: fixed_service())
+    monkeypatch.setattr(
+        v2_routes, "create_json_generator",
+        lambda settings: pytest.fail("an explicit amount change should not depend on the AI provider"),
+    )
+    monkeypatch.setattr(v2_routes, "record_provider_request_start", lambda user_id: pytest.fail("no provider request should be recorded"))
+
+    response = client.post("/api/v2/companion/query", json={
+        "question": "Change the amount to €18.50",
+        "scope": "current_month",
+        "target_transaction_id": companion_rows["grocery"],
+    }, headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.get_json()["data"]
+    proposal = data["proposal"]
+    assert data["kind"] == "proposal"
+    assert proposal["operation"] == "edit_transaction"
+    assert proposal["target_transaction_id"] == companion_rows["grocery"]
+    assert proposal["affected_fields"] == ["amount"]
+    assert proposal["proposed_values"] == {"amount": "18.50"}
+    assert proposal["expected_effect"]["monthly_deltas"][0]["expense_delta"] == "6.00"
+    with app.app_context():
+        stored = db.session.get(Transaction, companion_rows["grocery"])
+        assert str(stored.amount) == "12.50"
+        assert stored.deleted_at is None
+
+
+@pytest.mark.parametrize(("question", "operation", "values"), [
+    ("Change the date to 2026-10-06", "edit_transaction", {"transaction_date": "2026-10-06"}),
+    ("Change the category to Food", "edit_transaction", {"category_key": "expense_food"}),
+    ('Change the notes to "Updated note"', "edit_transaction", {"notes": "Updated note"}),
+    ("Delete this transaction", "soft_delete_transaction", {}),
+    ("Delete the transaction", "soft_delete_transaction", {}),
+    ("Set B/U/C to Choice", "change_transaction_context", {"b_u_c": "choice"}),
+    ("Set reflective context to Like", "change_transaction_context", {"reflective_context": "like"}),
+    ("Clear B/U/C", "change_transaction_context", {"b_u_c": None}),
+    ("Mark this as a Choice and Like", "change_transaction_context", {
+        "b_u_c": "choice", "reflective_context": "like",
+    }),
+])
+def test_explicit_transaction_actions_build_reviewable_proposals_without_provider(
+    client, auth_headers, app, companion_rows, monkeypatch, question, operation, values,
+):
+    monkeypatch.setattr(v2_routes, "TransactionEvidenceService", lambda: fixed_service())
+    monkeypatch.setattr(
+        v2_routes, "create_json_generator",
+        lambda settings: pytest.fail("an explicit transaction action should not depend on the AI provider"),
+    )
+    monkeypatch.setattr(v2_routes, "record_provider_request_start", lambda user_id: pytest.fail("no provider request should be recorded"))
+
+    response = client.post("/api/v2/companion/query", json={
+        "question": question,
+        "scope": "current_month",
+        "target_transaction_id": companion_rows["grocery"],
+    }, headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.get_json()["data"]
+    proposal = data["proposal"]
+    assert data["kind"] == "proposal"
+    assert proposal["operation"] == operation
+    assert proposal["target_transaction_id"] == companion_rows["grocery"]
+    assert proposal["affected_fields"] == list(values)
+    assert proposal["proposed_values"] == values
+    assert proposal["proposal_version"] == proposal["current_record"]["updated_at"]
+    with app.app_context():
+        stored = db.session.get(Transaction, companion_rows["grocery"])
+        assert str(stored.amount) == "12.50"
+        assert stored.deleted_at is None
+
+
+def test_targeted_companion_clarifies_for_foreign_deleted_and_out_of_scope_targets(client, auth_headers, app, companion_rows, monkeypatch):
+    monkeypatch.setattr(v2_routes, "TransactionEvidenceService", lambda: fixed_service())
+    monkeypatch.setattr(v2_routes, "create_json_generator", lambda settings: pytest.fail("unavailable targets must not reach the provider"))
+    with app.app_context():
+        category = db.session.scalar(select(Category).where(Category.key == "expense_food"))
+        other = User(email="other@example.com", password_hash="unused")
+        db.session.add(other)
+        db.session.flush()
+        foreign = Transaction(user_id=other.id, transaction_type="expense", amount="2.00", transaction_date=date(2026, 10, 3), category=category)
+        db.session.add(foreign)
+        db.session.commit()
+        foreign_id = foreign.id
+
+    for target_id in (foreign_id, companion_rows["deleted"], companion_rows["old"], 99999):
+        response = client.post("/api/v2/companion/query", json={
+            "question": "Please change this record",
+            "scope": "current_month",
+            "target_transaction_id": target_id,
+        }, headers=auth_headers)
+        assert response.status_code == 200
+        assert response.get_json()["data"]["kind"] == "clarification"
+
+
+def test_proposal_validation_rejects_wrong_target_extra_fields_and_invalid_values(client, auth_headers, companion_rows, monkeypatch):
+    monkeypatch.setattr(v2_routes, "TransactionEvidenceService", lambda: fixed_service())
+    monkeypatch.setattr(v2_routes, "record_provider_request_start", lambda user_id: None)
+    for invalid in (
+        proposal_response(companion_rows["old"]),
+        {**proposal_response(companion_rows["grocery"]), "extra": "not allowed"},
+        proposal_response(companion_rows["grocery"], values={"amount": "-1"}),
+        proposal_response(companion_rows["grocery"], values={"category_key": "unknown"}),
+        proposal_response(companion_rows["grocery"], fields=["transaction_date"], values={"transaction_date": "2030-01-01"}),
+        proposal_response(companion_rows["grocery"], fields=["transaction_type"], values={"transaction_type": "income"}),
+    ):
+        provider = FakeGenerator(invalid)
+        monkeypatch.setattr(v2_routes, "create_json_generator", lambda settings, provider=provider: provider)
+        response = client.post("/api/v2/companion/query", json={
+            "question": "Change this record",
+            "scope": "current_month",
+            "target_transaction_id": companion_rows["grocery"],
+        }, headers=auth_headers)
+        assert response.status_code == 200
+        assert response.get_json()["data"]["kind"] == "clarification"
+
+    income_context = FakeGenerator(proposal_response(
+        companion_rows["income"], "change_transaction_context", ["b_u_c"], {"b_u_c": "bill"},
+    ))
+    monkeypatch.setattr(v2_routes, "create_json_generator", lambda settings: income_context)
+    response = client.post("/api/v2/companion/query", json={
+        "question": "Set the income context", "scope": "current_month",
+        "target_transaction_id": companion_rows["income"],
+    }, headers=auth_headers)
+    assert response.status_code == 200
+    assert response.get_json()["data"]["kind"] == "clarification"
+
+
+def test_context_proposal_is_expense_only_and_category_effect_preserves_financial_totals(client, auth_headers, app, companion_rows, monkeypatch):
+    provider = FakeGenerator(proposal_response(
+        companion_rows["grocery"], "change_transaction_context", ["b_u_c", "reflective_context"],
+        {"b_u_c": "choice", "reflective_context": None},
+    ))
+    monkeypatch.setattr(v2_routes, "TransactionEvidenceService", lambda: fixed_service())
+    monkeypatch.setattr(v2_routes, "create_json_generator", lambda settings: provider)
+    monkeypatch.setattr(v2_routes, "record_provider_request_start", lambda user_id: None)
+    response = client.post("/api/v2/companion/query", json={
+        "question": "Set this expense as a choice",
+        "scope": "current_month",
+        "target_transaction_id": companion_rows["grocery"],
+    }, headers=auth_headers)
+    assert response.status_code == 200
+    assert response.get_json()["data"]["proposal"]["expected_effect"] == {
+        "kind": "no_financial_change", "message": "Income, expense, and net totals do not change.",
+    }
+
+    with app.app_context():
+        current = {
+            "amount": "12.50", "transaction_date": "2026-10-08", "category_key": "expense_food",
+            "transaction_type": "expense",
+        }
+        effect = calculate_expected_effect(current, "edit_transaction", {"category_key": "expense_other"})
+        assert effect["kind"] == "category_reallocation"
+        assert effect["monthly_deltas"][0]["income_delta"] == "0.00"
+        assert effect["monthly_deltas"][0]["expense_delta"] == "0.00"
+        assert effect["monthly_deltas"][0]["category_deltas"] == [
+            {"category_key": "expense_food", "delta": "-12.50"},
+            {"category_key": "expense_other", "delta": "12.50"},
+        ]
+        target = db.session.get(Transaction, companion_rows["grocery"])
+        assert target.b_u_c is None and target.reflective_context is None
+
+
+def test_edited_proposal_is_revalidated_and_preview_recalculated_without_provider(client, auth_headers, app, companion_rows, monkeypatch):
+    provider = FakeGenerator(proposal_response(companion_rows["grocery"]))
+    monkeypatch.setattr(v2_routes, "TransactionEvidenceService", lambda: fixed_service())
+    monkeypatch.setattr(v2_routes, "create_json_generator", lambda settings: provider)
+    monkeypatch.setattr(v2_routes, "record_provider_request_start", lambda user_id: None)
+    initial = client.post("/api/v2/companion/query", json={
+        "question": "Change the amount", "scope": "current_month",
+        "target_transaction_id": companion_rows["grocery"],
+    }, headers=auth_headers).get_json()["data"]["proposal"]
+    monkeypatch.setattr(v2_routes, "create_json_generator", lambda settings: pytest.fail("editing a proposal must not call the provider"))
+    monkeypatch.setattr(v2_routes, "record_provider_request_start", lambda user_id: pytest.fail("editing a proposal must not count as an AI request"))
+    response = client.post("/api/v2/companion/query", json={
+        "question": "Change the amount", "scope": "current_month",
+        "target_transaction_id": companion_rows["grocery"],
+        "proposal_review": {
+            "operation": initial["operation"],
+            "affected_fields": initial["affected_fields"],
+            "proposed_values": {"amount": "16.25"},
+            "proposal_version": initial["proposal_version"],
+            "uncertainty": initial["uncertainty"],
+        },
+    }, headers=auth_headers)
+    assert response.status_code == 200
+    updated = response.get_json()["data"]["proposal"]
+    assert updated["proposed_values"] == {"amount": "16.25"}
+    assert updated["expected_effect"]["monthly_deltas"][0]["expense_delta"] == "3.75"
+    assert provider.call is not None
+    with app.app_context():
+        assert str(db.session.get(Transaction, companion_rows["grocery"]).amount) == "12.50"
+
+
+def test_edited_proposal_with_stale_version_is_rejected(client, auth_headers, app, companion_rows, monkeypatch):
+    provider = FakeGenerator(proposal_response(companion_rows["grocery"]))
+    monkeypatch.setattr(v2_routes, "TransactionEvidenceService", lambda: fixed_service())
+    monkeypatch.setattr(v2_routes, "create_json_generator", lambda settings: provider)
+    monkeypatch.setattr(v2_routes, "record_provider_request_start", lambda user_id: None)
+    proposal = client.post("/api/v2/companion/query", json={
+        "question": "Change the amount", "scope": "current_month",
+        "target_transaction_id": companion_rows["grocery"],
+    }, headers=auth_headers).get_json()["data"]["proposal"]
+    with app.app_context():
+        target = db.session.get(Transaction, companion_rows["grocery"])
+        target.updated_at = datetime(2026, 10, 9, 12, tzinfo=ZoneInfo("UTC"))
+        db.session.commit()
+    monkeypatch.setattr(v2_routes, "create_json_generator", lambda settings: pytest.fail("stale edit must not call the provider"))
+    response = client.post("/api/v2/companion/query", json={
+        "question": "Change the amount", "scope": "current_month",
+        "target_transaction_id": companion_rows["grocery"],
+        "proposal_review": {
+            "operation": proposal["operation"], "affected_fields": proposal["affected_fields"],
+            "proposed_values": {"amount": "16.25"}, "proposal_version": proposal["proposal_version"],
+            "uncertainty": proposal["uncertainty"],
+        },
+    }, headers=auth_headers)
+    assert response.status_code == 409
+    assert response.get_json()["error"]["code"] == "STALE_PROPOSAL_VERSION"
