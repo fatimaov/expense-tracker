@@ -1,4 +1,5 @@
 import json
+import base64
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -97,6 +98,30 @@ def test_gemini_adapter_requests_structured_json_and_parses_response():
     assert client.call["config"]["response_mime_type"] == "application/json"
     assert client.call["config"]["response_json_schema"] == SCHEMA
     assert client.calls == 1
+
+
+@pytest.mark.parametrize("client_class", [FakeOpenAI, FakeGemini])
+def test_adapters_send_image_and_structured_json_without_exposing_sdk_types(client_class):
+    settings = AISettings.from_mapping({}) if client_class is FakeOpenAI else AISettings.from_mapping({
+        "AI_PROVIDER": "gemini", "GEMINI_API_KEY": "secret", "GEMINI_MODEL": "model-id",
+    })
+    make_adapter = LMStudioJSONGenerator if client_class is FakeOpenAI else GeminiJSONGenerator
+    client = client_class()
+    adapter = make_adapter(settings, client=client)
+    image = b"private-image-bytes"
+
+    assert adapter.generate_json_from_image(
+        "extract receipt", image, "image/png", {"media_type": "image/png"}, SCHEMA
+    ) == {"answer": "ok"}
+    assert client.calls == 1
+    if client_class is FakeOpenAI:
+        content = client.call["messages"][1]["content"]
+        assert content[0]["type"] == "text"
+        assert content[1]["image_url"]["url"] == f"data:image/png;base64,{base64.b64encode(image).decode('ascii')}"
+        assert client.call["response_format"]["json_schema"]["schema"] == SCHEMA
+    else:
+        assert client.call["contents"][1] == {"data": image, "mime_type": "image/png"}
+        assert client.call["config"]["response_json_schema"] == SCHEMA
 
 
 def test_sdk_construction_sets_timeout_and_disables_retries(monkeypatch):

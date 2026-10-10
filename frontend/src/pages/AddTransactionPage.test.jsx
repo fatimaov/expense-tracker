@@ -7,7 +7,7 @@ import AddTransactionPage from './AddTransactionPage.jsx'
 import { transactionService } from '../services/transactionService.js'
 
 vi.mock('../services/transactionService.js', () => ({
-  transactionService: { createTransaction: vi.fn(), createTextDraft: vi.fn() },
+  transactionService: { createTransaction: vi.fn(), createTextDraft: vi.fn(), createReceiptDraft: vi.fn() },
 }))
 
 afterEach(() => {
@@ -113,6 +113,105 @@ describe('AddTransactionPage', () => {
     expect(screen.getByLabelText('Amount (€)')).toBeInTheDocument()
     expect(screen.queryByLabelText('Transaction description')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Describe a transaction' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: 'Upload a receipt' })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('creates a receipt-derived draft for review and saves only through the normal transaction command', async () => {
+    const user = userEvent.setup()
+    const file = new File(['valid-image'], 'receipt.png', { type: 'image/png' })
+    transactionService.createReceiptDraft.mockResolvedValue({ data: {
+      draft: { transaction_type: 'expense', amount: '18.75', transaction_date: '2026-10-09', category_key: 'expense_food', notes: 'Cafe Example' },
+      missing_fields: [], uncertainties: [],
+    } })
+    transactionService.createTransaction.mockResolvedValue({ data: {} })
+    renderPage()
+
+    await user.click(screen.getByRole('button', { name: 'Upload a receipt' }))
+    const picker = screen.getByLabelText('Receipt image')
+    expect(picker).toHaveAttribute('accept', 'image/jpeg,image/png,image/webp')
+    expect(picker).not.toHaveAttribute('multiple')
+    fireEvent.change(picker, { target: { files: [file] } })
+    expect(screen.getByText(/Selected: receipt.png/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+
+    expect(await screen.findByText(/This draft came from a receipt image/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Amount (€)')).toHaveValue('18.75')
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-10-09')
+    expect(screen.getByLabelText('Category')).toHaveValue('expense_food')
+    expect(screen.getByLabelText(/Notes/)).toHaveValue('Cafe Example')
+    await user.clear(screen.getByLabelText(/Notes/))
+    await user.type(screen.getByLabelText(/Notes/), 'Corrected merchant')
+    await user.click(screen.getByRole('button', { name: 'Save transaction' }))
+    await waitFor(() => expect(transactionService.createTransaction).toHaveBeenCalledWith(expect.objectContaining({
+      transaction_type: 'expense', amount: '18.75', transaction_date: '2026-10-09',
+      category_key: 'expense_food', notes: 'Corrected merchant', b_u_c: null, reflective_context: null,
+    })))
+    expect(transactionService.createReceiptDraft).toHaveBeenCalledWith(file)
+  })
+
+  it('rejects missing, unsupported, and oversized receipt files before provider processing', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Upload a receipt' }))
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+    expect(await screen.findByText('Choose one receipt image before creating a draft.')).toBeInTheDocument()
+
+    const picker = screen.getByLabelText('Receipt image')
+    fireEvent.change(picker, { target: { files: [new File(['x'], 'receipt.txt', { type: 'text/plain' })] } })
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+    expect(await screen.findByText('Choose a JPEG, PNG, or WebP image.')).toBeInTheDocument()
+
+    const oversized = new File([new Uint8Array((10 * 1024 * 1024) + 1)], 'large.png', { type: 'image/png' })
+    fireEvent.change(picker, { target: { files: [oversized] } })
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+    expect(await screen.findByText('Choose an image that is 10 MB or smaller.')).toBeInTheDocument()
+    expect(transactionService.createReceiptDraft).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Amount (€)')).toBeInTheDocument()
+  })
+
+  it('preserves the selected receipt and keeps manual entry usable after provider errors', async () => {
+    const user = userEvent.setup()
+    const file = new File(['valid-image'], 'receipt.webp', { type: 'image/webp' })
+    transactionService.createReceiptDraft.mockRejectedValue({
+      message: 'The AI provider request timed out.',
+      data: { error: { message: 'The AI provider request timed out.' } },
+    })
+    transactionService.createTransaction.mockResolvedValue({ data: {} })
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Upload a receipt' }))
+    fireEvent.change(screen.getByLabelText('Receipt image'), { target: { files: [file] } })
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/enter the transaction manually/i)
+    expect(screen.getByText(/Selected: receipt.webp/)).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Amount (€)'), '12.50')
+    await user.selectOptions(screen.getByLabelText('Category'), 'expense_food')
+    await user.click(screen.getByRole('button', { name: 'Save transaction' }))
+    await waitFor(() => expect(transactionService.createTransaction).toHaveBeenCalledOnce())
+  })
+
+  it('requires confirmation before a receipt draft replaces manual values and supports discard', async () => {
+    const user = userEvent.setup()
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const file = new File(['valid-image'], 'receipt.jpg', { type: 'image/jpeg' })
+    transactionService.createReceiptDraft.mockResolvedValue({ data: {
+      draft: { transaction_type: 'expense', amount: '10.00', transaction_date: '2026-10-09', category_key: 'expense_food', notes: 'Cafe' },
+      missing_fields: [], uncertainties: [],
+    } })
+    renderPage()
+    await user.type(screen.getByLabelText('Amount (€)'), '99.00')
+    await user.click(screen.getByRole('button', { name: 'Upload a receipt' }))
+    fireEvent.change(screen.getByLabelText('Receipt image'), { target: { files: [file] } })
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+    expect(confirm).toHaveBeenCalledOnce()
+    expect(transactionService.createReceiptDraft).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Amount (€)')).toHaveValue('99.00')
+
+    confirm.mockReturnValue(true)
+    await user.click(screen.getByRole('button', { name: 'Create draft' }))
+    expect(await screen.findByLabelText('Amount (€)')).toHaveValue('10.00')
+    await user.click(screen.getByRole('button', { name: 'Discard draft' }))
+    expect(screen.getByLabelText('Amount (€)')).toHaveValue('')
+    expect(screen.queryByText(/Review before saving/)).not.toBeInTheDocument()
   })
 
   it('rejects blank and over-limit text locally without calling the provider', async () => {

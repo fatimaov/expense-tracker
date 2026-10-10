@@ -18,6 +18,7 @@ flask-admin = "*"
 flask-swagger-ui = "*"
 openai = "*"
 google-genai = "*"
+pillow = "*"
 
 [scripts]
 start = "python run.py"

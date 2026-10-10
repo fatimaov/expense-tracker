@@ -1,4 +1,5 @@
 import json
+import base64
 from typing import Protocol
 
 from .config import AIProvider, AISettings
@@ -14,6 +15,9 @@ from .errors import (
 class JSONGenerator(Protocol):
     def generate_json(self, system_instructions: str, user_content: str,
                       evidence: dict, response_schema: dict) -> dict: ...
+
+    def generate_json_from_image(self, system_instructions: str, image_bytes: bytes,
+                                 media_type: str, evidence: dict, response_schema: dict) -> dict: ...
 
 
 def _validate_schema(schema: object) -> dict:
@@ -84,6 +88,42 @@ class LMStudioJSONGenerator:
         except Exception as error:
             raise AIProviderResponseError("The AI provider response could not be read.") from error
 
+    def generate_json_from_image(self, system_instructions: str, image_bytes: bytes,
+                                 media_type: str, evidence: dict, response_schema: dict) -> dict:
+        schema = _validate_schema(response_schema)
+        image_data = base64.b64encode(image_bytes).decode("ascii")
+        user_content = (
+            "Application evidence (JSON):\n"
+            f"{json.dumps(evidence, ensure_ascii=False, separators=(',', ':'))}"
+        )
+        try:
+            response = self._client.chat.completions.create(
+                model=self._model,
+                messages=[
+                    {"role": "system", "content": system_instructions},
+                    {"role": "user", "content": [
+                        {"type": "text", "text": user_content},
+                        {"type": "image_url", "image_url": {
+                            "url": f"data:{media_type};base64,{image_data}",
+                        }},
+                    ]},
+                ],
+                response_format={"type": "json_schema", "json_schema": {
+                    "name": "receipt_transaction_draft", "strict": True, "schema": schema,
+                }},
+                timeout=30,
+            )
+        except Exception as error:
+            if _is_timeout(error):
+                raise AIProviderTimeoutError("The AI provider request timed out.") from error
+            raise AIProviderUnavailableError("The configured AI provider could not complete the request.") from error
+        try:
+            return _json_response(response.choices[0].message.content)
+        except AIProviderResponseError:
+            raise
+        except Exception as error:
+            raise AIProviderResponseError("The AI provider response could not be read.") from error
+
 
 class GeminiJSONGenerator:
     def __init__(self, settings: AISettings, client=None):
@@ -106,7 +146,10 @@ class GeminiJSONGenerator:
                 raise AIConfigurationError("The Gemini client is unavailable or misconfigured.") from error
         else:
             from types import SimpleNamespace
-            self._types = SimpleNamespace(GenerateContentConfig=lambda **kwargs: kwargs)
+            self._types = SimpleNamespace(
+                GenerateContentConfig=lambda **kwargs: kwargs,
+                Part=SimpleNamespace(from_bytes=lambda **kwargs: kwargs),
+            )
         self._client = client
         self._model = settings.gemini_model
 
@@ -118,6 +161,38 @@ class GeminiJSONGenerator:
             response = self._client.models.generate_content(
                 model=self._model,
                 contents=content,
+                config=self._types.GenerateContentConfig(
+                    system_instruction=system_instructions,
+                    response_mime_type="application/json",
+                    response_json_schema=schema,
+                ),
+            )
+        except Exception as error:
+            if _is_timeout(error):
+                raise AIProviderTimeoutError("The AI provider request timed out.") from error
+            raise AIProviderUnavailableError("The configured AI provider could not complete the request.") from error
+        try:
+            return _json_response(response.text)
+        except AIProviderResponseError:
+            raise
+        except Exception as error:
+            raise AIProviderResponseError("The AI provider response could not be read.") from error
+
+    def generate_json_from_image(self, system_instructions: str, image_bytes: bytes,
+                                 media_type: str, evidence: dict, response_schema: dict) -> dict:
+        schema = _validate_schema(response_schema)
+        text_content = (
+            "Extract a draft from the attached receipt image.\n\n"
+            "Application evidence (JSON):\n"
+            f"{json.dumps(evidence, ensure_ascii=False, separators=(',', ':'))}"
+        )
+        try:
+            response = self._client.models.generate_content(
+                model=self._model,
+                contents=[
+                    text_content,
+                    self._types.Part.from_bytes(data=image_bytes, mime_type=media_type),
+                ],
                 config=self._types.GenerateContentConfig(
                     system_instruction=system_instructions,
                     response_mime_type="application/json",

@@ -16,6 +16,17 @@ describe('transactionService', () => {
     }, { headers: { Authorization: 'Bearer jwt-token' } })
   })
 
+  it('sends receipt images as multipart form data without setting a JSON content type', async () => {
+    const receipt = new File(['image-bytes'], 'receipt.png', { type: 'image/png' })
+    await transactionService.createReceiptDraft(receipt)
+
+    const [endpoint, body, options] = apiClient.post.mock.calls[0]
+    expect(endpoint).toBe('/v2/assisted-entry/receipt')
+    expect(body).toBeInstanceOf(FormData)
+    expect(body.get('receipt')).toBe(receipt)
+    expect(options).toEqual({ headers: { Authorization: 'Bearer jwt-token' } })
+  })
+
   it('sends an authenticated V2 create with a fresh UUID v4 idempotency key', async () => {
     const uuid = '3b12f1df-5232-4804-897e-917bf397618a'
     const randomUUID = vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(uuid)

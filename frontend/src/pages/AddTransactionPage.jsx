@@ -11,6 +11,24 @@ const DRAFT_FIELD_LABELS = {
   notes: 'notes',
 }
 
+const MAX_RECEIPT_BYTES = 10 * 1024 * 1024
+const RECEIPT_MEDIA_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+async function receiptFileError(file) {
+  if (!file) return 'Choose one receipt image before creating a draft.'
+  if (!RECEIPT_MEDIA_TYPES.has(file.type)) return 'Choose a JPEG, PNG, or WebP image.'
+  if (file.size > MAX_RECEIPT_BYTES) return 'Choose an image that is 10 MB or smaller.'
+  if (typeof globalThis.createImageBitmap === 'function') {
+    try {
+      const bitmap = await globalThis.createImageBitmap(file)
+      bitmap.close()
+    } catch {
+      return 'This image is invalid or damaged. Choose a valid JPEG, PNG, or WebP image.'
+    }
+  }
+  return ''
+}
+
 function AddTransactionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
@@ -18,11 +36,17 @@ function AddTransactionPage() {
   const [successMessage, setSuccessMessage] = useState('')
   const [successCount, setSuccessCount] = useState(0)
   const [describeOpen, setDescribeOpen] = useState(false)
+  const [receiptOpen, setReceiptOpen] = useState(false)
+  const [selectedReceipt, setSelectedReceipt] = useState(null)
+  const [receiptError, setReceiptError] = useState('')
+  const [receiptFieldError, setReceiptFieldError] = useState('')
+  const [isCreatingReceiptDraft, setIsCreatingReceiptDraft] = useState(false)
   const [description, setDescription] = useState('')
   const [assistedError, setAssistedError] = useState('')
   const [assistedFieldError, setAssistedFieldError] = useState('')
   const [isCreatingDraft, setIsCreatingDraft] = useState(false)
   const [assistedDraft, setAssistedDraft] = useState(null)
+  const [assistedDraftSource, setAssistedDraftSource] = useState(null)
   const submissionLock = useRef(false)
   const manualValuesRef = useRef(null)
 
@@ -66,6 +90,7 @@ function AddTransactionPage() {
       const response = await transactionService.createTextDraft(description)
       if (JSON.stringify(manualValuesRef.current ?? null) !== manualValuesAtStart && hasManualValues() && !window.confirm('Replace the values entered in the manual form while the draft was being created?')) return
       setAssistedDraft(response.data)
+      setAssistedDraftSource('text')
       setFieldErrors({})
       setPageError('')
       setSuccessMessage('')
@@ -77,8 +102,38 @@ function AddTransactionPage() {
     }
   }
 
+  async function handleCreateReceiptDraft(event) {
+    event.preventDefault()
+    setReceiptError('')
+    const validationMessage = await receiptFileError(selectedReceipt)
+    if (validationMessage) {
+      setReceiptFieldError(validationMessage)
+      return
+    }
+    setReceiptFieldError('')
+    if (!confirmReplacement()) return
+    const manualValuesAtStart = JSON.stringify(manualValuesRef.current ?? null)
+
+    setIsCreatingReceiptDraft(true)
+    try {
+      const response = await transactionService.createReceiptDraft(selectedReceipt)
+      if (JSON.stringify(manualValuesRef.current ?? null) !== manualValuesAtStart && hasManualValues() && !window.confirm('Replace the values entered in the manual form while the receipt draft was being created?')) return
+      setAssistedDraft(response.data)
+      setAssistedDraftSource('receipt')
+      setFieldErrors({})
+      setPageError('')
+      setSuccessMessage('')
+    } catch (requestError) {
+      const message = requestError?.data?.error?.message || requestError.message
+      setReceiptError(`${message || 'Unable to create a receipt draft.'} Your image is still selected, and you can enter the transaction manually.`)
+    } finally {
+      setIsCreatingReceiptDraft(false)
+    }
+  }
+
   function discardDraft() {
     setAssistedDraft(null)
+    setAssistedDraftSource(null)
     manualValuesRef.current = null
     setFieldErrors({})
     setPageError('')
@@ -96,6 +151,7 @@ function AddTransactionPage() {
       setSuccessMessage('Transaction saved. You can add another one.')
       setSuccessCount((count) => count + 1)
       setAssistedDraft(null)
+      setAssistedDraftSource(null)
       manualValuesRef.current = null
     } catch (requestError) {
       const serverFields = requestError?.data?.error?.fields ?? {}
@@ -158,8 +214,51 @@ function AddTransactionPage() {
             </div>
           </section>
 
+          <section className="card mb-4" aria-labelledby="upload-receipt-heading">
+            <div className="card-body">
+              <h2 className="h5 mb-0" id="upload-receipt-heading">
+                <button
+                  className="btn btn-link p-0 text-decoration-none"
+                  type="button"
+                  aria-expanded={receiptOpen}
+                  aria-controls="upload-receipt-panel"
+                  onClick={() => setReceiptOpen((open) => !open)}
+                >
+                  Upload a receipt
+                </button>
+              </h2>
+              {receiptOpen && <div id="upload-receipt-panel" className="pt-3">
+                <p className="text-secondary">One JPEG, PNG, or WebP image up to 10 MB. The upload is processed only to prepare a draft and is not stored. Review the draft before saving.</p>
+                <form onSubmit={handleCreateReceiptDraft}>
+                  <label className="form-label" htmlFor="receipt-image">Receipt image</label>
+                  <input
+                    className={`form-control${receiptFieldError ? ' is-invalid' : ''}`}
+                    id="receipt-image"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    aria-invalid={Boolean(receiptFieldError)}
+                    aria-describedby={receiptFieldError ? 'receipt-image-error receipt-image-feedback' : 'receipt-image-feedback'}
+                    onChange={(event) => {
+                      setSelectedReceipt(event.target.files?.[0] ?? null)
+                      setReceiptFieldError('')
+                      setReceiptError('')
+                    }}
+                  />
+                  {receiptFieldError && <div className="invalid-feedback" id="receipt-image-error">{receiptFieldError}</div>}
+                  <div id="receipt-image-feedback" className="form-text mb-3">
+                    {selectedReceipt ? `Selected: ${selectedReceipt.name} (${(selectedReceipt.size / (1024 * 1024)).toFixed(2)} MB)` : 'No image selected.'}
+                  </div>
+                  {receiptError && <div className="alert alert-danger" role="alert">{receiptError}</div>}
+                  <button className="btn btn-outline-primary" type="submit" disabled={isCreatingReceiptDraft}>
+                    {isCreatingReceiptDraft ? 'Creating draft…' : 'Create draft'}
+                  </button>
+                </form>
+              </div>}
+            </div>
+          </section>
+
           {assistedDraft && <div className="alert alert-info" role="status" aria-live="polite">
-            <strong>Review before saving.</strong> Check every field, fill any missing details, then save through the normal transaction form.
+            <strong>Review before saving.</strong> {assistedDraftSource === 'receipt' ? 'This draft came from a receipt image. ' : ''}Check every field, fill any missing details, then save through the normal transaction form.
             {assistedDraft.missing_fields?.length > 0 && <p className="mb-1 mt-2">Needs your input: {assistedDraft.missing_fields.map((field) => DRAFT_FIELD_LABELS[field] ?? field).join(', ')}.</p>}
             {assistedDraft.uncertainties?.length > 0 && <ul className="mb-2 mt-2">
               {assistedDraft.uncertainties.map(({ field, reason }) => <li key={field}><strong>{DRAFT_FIELD_LABELS[field] ?? field}:</strong> {reason}</li>)}
