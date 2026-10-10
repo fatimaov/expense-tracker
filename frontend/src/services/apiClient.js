@@ -12,16 +12,17 @@ export class ApiError extends Error {
 export async function request(endpoint, { method = 'GET', body, headers = {} } = {}) {
   const url = `${API_BASE_URL.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`
   const hasBody = body !== undefined
+  const isFormData = hasBody && typeof FormData !== 'undefined' && body instanceof FormData
   let response
 
   try {
     response = await fetch(url, {
       method,
       headers: {
-        ...(hasBody && { 'Content-Type': 'application/json' }),
+        ...(hasBody && !isFormData && { 'Content-Type': 'application/json' }),
         ...headers,
       },
-      ...(hasBody && { body: JSON.stringify(body) }),
+      ...(hasBody && { body: isFormData ? body : JSON.stringify(body) }),
     })
   } catch {
     throw new ApiError(

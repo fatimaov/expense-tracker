@@ -16,6 +16,14 @@ function createTextDraft(text) {
   })
 }
 
+function createReceiptDraft(file) {
+  const body = new FormData()
+  body.append('receipt', file)
+  return apiClient.post('/v2/assisted-entry/receipt', body, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  })
+}
+
 function getTransactions({ scope = 'current_month', page = 1, pageSize = 25 } = {}) {
   const params = new URLSearchParams({ scope, page: String(page), page_size: String(pageSize) })
   return apiClient.get(`/v2/transactions?${params}`, {
@@ -47,4 +55,4 @@ function deleteTransaction(id) {
   })
 }
 
-export const transactionService = { createTransaction, createTextDraft, getTransactions, getTransaction, updateTransaction, deleteTransaction }
+export const transactionService = { createTransaction, createTextDraft, createReceiptDraft, getTransactions, getTransaction, updateTransaction, deleteTransaction }
