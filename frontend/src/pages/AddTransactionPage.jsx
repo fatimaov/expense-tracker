@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import TransactionForm from '../components/TransactionForm.jsx'
 import TransactionNavigation from '../components/TransactionNavigation.jsx'
 import { transactionService } from '../services/transactionService.js'
@@ -13,6 +13,25 @@ const DRAFT_FIELD_LABELS = {
 
 const MAX_RECEIPT_BYTES = 10 * 1024 * 1024
 const RECEIPT_MEDIA_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const SPEECH_SESSION_MS = 60_000
+
+function getSpeechRecognitionConstructor() {
+  return globalThis.SpeechRecognition ?? globalThis.webkitSpeechRecognition ?? null
+}
+
+function speechErrorMessage(error) {
+  if (error === 'not-allowed' || error === 'service-not-allowed') return 'Microphone permission was denied. You can type a description or use the manual form.'
+  if (error === 'no-speech') return 'No speech was detected. Try again or type a description.'
+  if (error === 'audio-capture') return 'No microphone is available. You can type a description or use the manual form.'
+  return 'Speech recognition failed. You can try again, type a description, or use the manual form.'
+}
+
+function appendTranscript(existingText, transcript) {
+  const addition = transcript.trim()
+  if (!addition) return existingText
+  const current = existingText.trimEnd()
+  return current ? `${current}${/[.!?]$/.test(current) ? ' ' : '. '}${addition}` : addition
+}
 
 async function receiptFileError(file) {
   if (!file) return 'Choose one receipt image before creating a draft.'
@@ -45,10 +64,78 @@ function AddTransactionPage() {
   const [assistedError, setAssistedError] = useState('')
   const [assistedFieldError, setAssistedFieldError] = useState('')
   const [isCreatingDraft, setIsCreatingDraft] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const [speechError, setSpeechError] = useState('')
+  const [speechStatus, setSpeechStatus] = useState('')
   const [assistedDraft, setAssistedDraft] = useState(null)
   const [assistedDraftSource, setAssistedDraftSource] = useState(null)
   const submissionLock = useRef(false)
   const manualValuesRef = useRef(null)
+  const recognitionRef = useRef(null)
+  const speechTimerRef = useRef(null)
+  const speechSupported = Boolean(getSpeechRecognitionConstructor())
+
+  function finishListening() {
+    setIsListening(false)
+    if (speechTimerRef.current) {
+      window.clearTimeout(speechTimerRef.current)
+      speechTimerRef.current = null
+    }
+  }
+
+  function stopRecognition() {
+    recognitionRef.current?.stop()
+    finishListening()
+  }
+
+  function startRecognition() {
+    const SpeechRecognition = getSpeechRecognitionConstructor()
+    if (!SpeechRecognition) {
+      setSpeechError('Speech recognition is not available in this browser. You can type a description or use the manual form.')
+      return
+    }
+    setSpeechError('')
+    setSpeechStatus('')
+    try {
+      const recognition = new SpeechRecognition()
+      recognition.lang = navigator.language || 'en-US'
+      recognition.continuous = true
+      recognition.interimResults = true
+      recognition.onresult = (event) => {
+        let finalTranscript = ''
+        for (let index = event.resultIndex; index < event.results.length; index += 1) {
+          const result = event.results[index]
+          if (result.isFinal) finalTranscript += result[0]?.transcript ?? ''
+        }
+        if (finalTranscript) setDescription((current) => appendTranscript(current, finalTranscript))
+      }
+      recognition.onerror = (event) => {
+        setSpeechError(speechErrorMessage(event.error))
+        finishListening()
+      }
+      recognition.onend = () => {
+        finishListening()
+        setSpeechStatus('Speech recognition ended. Review or edit the text before creating a draft.')
+      }
+      recognitionRef.current = recognition
+      recognition.start()
+      setIsListening(true)
+      speechTimerRef.current = window.setTimeout(() => {
+        setSpeechError('The 60-second listening limit was reached. You can review the text, try again, or use the manual form.')
+        recognition.stop()
+        finishListening()
+      }, SPEECH_SESSION_MS)
+    } catch {
+      recognitionRef.current = null
+      finishListening()
+      setSpeechError('Speech recognition could not start. Check microphone permission or type a description instead.')
+    }
+  }
+
+  useEffect(() => () => {
+    if (speechTimerRef.current) window.clearTimeout(speechTimerRef.current)
+    recognitionRef.current?.abort?.()
+  }, [])
 
   function hasManualValues(values = manualValuesRef.current) {
     if (!values) return false
@@ -193,16 +280,26 @@ function AddTransactionPage() {
                 <p className="text-secondary">For example, “I spent €12.50 on lunch today”. You can describe it in your own words.</p>
                 <form onSubmit={handleCreateDraft}>
                   <label className="form-label" htmlFor="transaction-description">Transaction description</label>
+                  {speechSupported && <div className="mb-2">
+                    <button className="btn btn-outline-secondary" type="button" onClick={isListening ? stopRecognition : startRecognition} aria-pressed={isListening}>
+                      {isListening ? 'Stop listening' : 'Start microphone'}
+                    </button>
+                    <span className="ms-2" role="status" aria-live="polite">{isListening ? 'Listening. Speak now; you can stop at any time.' : ''}</span>
+                  </div>}
+                  {speechStatus && <p className="form-text" role="status" aria-live="polite">{speechStatus}</p>}
+                  {!speechSupported && <p className="form-text">Speech recognition is not available in this browser. You can type a description or use the manual form.</p>}
+                  <p className="form-text">Browser/device speech recognition may use an external speech service, depending on its settings. The app does not record or retain audio.</p>
                   <textarea
                     className={`form-control${assistedFieldError ? ' is-invalid' : ''}`}
                     id="transaction-description"
                     rows="3"
                     maxLength={1000}
                     value={description}
-                    onChange={(event) => { setDescription(event.target.value); setAssistedFieldError(''); setAssistedError('') }}
+                    onChange={(event) => { setDescription(event.target.value); setAssistedFieldError(''); setAssistedError(''); setSpeechError(''); setSpeechStatus('') }}
                     aria-invalid={Boolean(assistedFieldError)}
                     aria-describedby={assistedFieldError ? 'transaction-description-error transaction-description-count' : 'transaction-description-count'}
                   />
+                  {speechError && <div className="alert alert-warning py-2" role="status" aria-live="polite">{speechError}</div>}
                   {assistedFieldError && <div className="invalid-feedback" id="transaction-description-error">{assistedFieldError}</div>}
                   <div id="transaction-description-count" className="form-text mb-3">{description.length}/1,000 characters</div>
                   {assistedError && <div className="alert alert-danger" role="alert">{assistedError}</div>}
