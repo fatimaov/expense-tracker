@@ -68,6 +68,12 @@ RECEIPT_SYSTEM_INSTRUCTIONS = (
     "Return transaction_type as expense or null. Never propose income, B/U/C, or reflective context. "
     "Extract only a clearly printed final payable total, transaction date, supported expense category, and concise merchant "
     "or relevant receipt detail for notes. Do not invent or estimate a total, date, merchant, category, or tax treatment. "
+    "Return the final payable total in amount as a plain decimal string using a dot as the decimal separator, "
+    "without currency symbols or thousands separators (for example, a printed 1.234,56 € becomes \"1234.56\"). "
+    "Do not return the amount as a JSON number. "
+    "This is a Spanish receipt: interpret printed dates as day/month/year, not month/day/year. "
+    "Return transaction_date as YYYY-MM-DD; for example, 02/08/24 means 2024-08-02. "
+    "Use the transaction date printed on the receipt, not today's date or a ticket/control number. "
     "If a value is missing, uncertain, or unreadable, return null and briefly explain it in uncertainties. "
     "Return only the requested JSON object."
 )
@@ -128,7 +134,64 @@ def create_receipt_transaction_draft(
         context,
         RECEIPT_DRAFT_RESPONSE_SCHEMA,
     )
+    proposed = _normalize_receipt_draft(proposed)
     return _validate_provider_draft(proposed, categories, current_date, allowed_types={"expense"})
+
+
+_RECEIPT_AMOUNT_CURRENCY = re.compile(r"(?:€|\$|£|EUR|USD|GBP)", re.IGNORECASE)
+
+
+def _normalize_receipt_draft(proposed: object) -> object:
+    """Normalize common receipt amount and Spanish date formats before validation."""
+    if not isinstance(proposed, dict):
+        return proposed
+
+    corrected = dict(proposed)
+    amount = proposed.get("amount")
+    if isinstance(amount, (int, float, Decimal)) and not isinstance(amount, bool):
+        amount = str(amount)
+    if isinstance(amount, str):
+        cleaned = _RECEIPT_AMOUNT_CURRENCY.sub("", amount).strip()
+        cleaned = cleaned.replace("\u00a0", "").replace(" ", "")
+        if re.fullmatch(r"[+-]?[0-9][0-9.,]*", cleaned):
+            sign = ""
+            if cleaned[:1] in {"+", "-"}:
+                sign, cleaned = cleaned[0], cleaned[1:]
+            if cleaned and cleaned[-1].isdigit():
+                if "." in cleaned and "," in cleaned:
+                    decimal_separator = "." if cleaned.rfind(".") > cleaned.rfind(",") else ","
+                    grouping_separator = "," if decimal_separator == "." else "."
+                    whole, fraction = cleaned.rsplit(decimal_separator, 1)
+                    whole = whole.replace(grouping_separator, "")
+                elif "," in cleaned or "." in cleaned:
+                    separator = "," if "," in cleaned else "."
+                    pieces = cleaned.split(separator)
+                    if len(pieces) > 2:
+                        if all(len(piece) == 3 for piece in pieces[1:]):
+                            whole, fraction = "".join(pieces), ""
+                        else:
+                            whole, fraction = "", "invalid"
+                    elif len(pieces[1]) == 3:
+                        whole, fraction = "".join(pieces), ""
+                    else:
+                        whole, fraction = pieces
+                else:
+                    whole, fraction = cleaned, ""
+                if whole.isdigit() and (not fraction or fraction.isdigit()) and len(fraction) <= 2:
+                    corrected["amount"] = f"{sign}{whole}.{fraction.ljust(2, '0')}" if fraction else f"{sign}{whole}.00"
+
+    transaction_date = proposed.get("transaction_date")
+    if isinstance(transaction_date, str):
+        match = re.fullmatch(r"\s*(\d{1,2})[./-](\d{1,2})[./-](\d{2}|\d{4})\s*", transaction_date)
+        if match:
+            day, month, year = (int(part) for part in match.groups())
+            if year < 100:
+                year += 2000 if year <= 69 else 1900
+            try:
+                corrected["transaction_date"] = date(year, month, day).isoformat()
+            except ValueError:
+                pass
+    return corrected
 
 SYSTEM_INSTRUCTIONS = (
     "Extract a draft for one one-time income or expense from the user's text. "
