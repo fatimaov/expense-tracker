@@ -7,6 +7,7 @@ import EditTransactionPage from '../pages/EditTransactionPage.jsx'
 import EditExpensePage from '../pages/EditExpensePage.jsx'
 import ExpensesPage from '../pages/ExpensesPage.jsx'
 import TransactionHistoryPage from '../pages/TransactionHistoryPage.jsx'
+import CompanionPage from '../pages/CompanionPage.jsx'
 import LoginPage from '../pages/LoginPage.jsx'
 import RegisterPage from '../pages/RegisterPage.jsx'
 
@@ -40,6 +41,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <TransactionHistoryPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/companion',
+    element: (
+      <ProtectedRoute>
+        <CompanionPage />
       </ProtectedRoute>
     ),
   },

@@ -9,6 +9,7 @@ function TransactionNavigation() {
         <div className="navbar-nav flex-row gap-3">
           <Link className={`nav-link${pathname.startsWith('/transactions/new') ? ' active' : ''}`} to="/transactions/new">Add transaction</Link>
           <Link className={`nav-link${pathname === '/transactions' || pathname.includes('/edit') ? ' active' : ''}`} to="/transactions">Transaction history</Link>
+          <Link className={`nav-link${pathname === '/companion' ? ' active' : ''}`} to="/companion">Companion</Link>
         </div>
       </div>
     </nav>
