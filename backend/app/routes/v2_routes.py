@@ -32,6 +32,15 @@ from ..services.companion_service import (
     validate_companion_response,
 )
 from ..services.transaction_evidence_service import TransactionEvidenceService
+from ..services.companion_proposal_service import (
+    PROPOSAL_RESPONSE_SCHEMA,
+    PROPOSAL_SYSTEM_INSTRUCTIONS,
+    StaleProposalVersion,
+    TargetTransactionUnavailable,
+    build_reviewed_proposal,
+    build_target_evidence,
+    validate_proposal_response,
+)
 from ..ai.config import AISettings
 from ..ai.errors import (
     AIConfigurationError,
@@ -118,26 +127,59 @@ def create_text_draft_v2():
 @jwt_required()
 def query_companion_v2():
     payload = request.get_json(silent=True)
-    if not isinstance(payload, dict) or set(payload) != {"question", "scope"}:
+    allowed_shapes = (
+        {"question", "scope"},
+        {"question", "scope", "target_transaction_id"},
+        {"question", "scope", "target_transaction_id", "proposal_review"},
+    )
+    if not isinstance(payload, dict) or set(payload) not in allowed_shapes:
         return error_response("Provide a question and scope.", "VALIDATION_ERROR", 400, {
             "question": "Enter a question of 1 to 1,000 characters.",
             "scope": "Choose current_month or all.",
         })
     question = payload["question"]
     scope = payload["scope"]
+    target_id = payload.get("target_transaction_id")
+    proposal_review = payload.get("proposal_review")
     fields = {}
     if not isinstance(question, str) or not question.strip() or len(question) > 1000:
         fields["question"] = "Enter a question of 1 to 1,000 characters."
     if not isinstance(scope, str) or scope not in {"current_month", "all"}:
         fields["scope"] = "Choose current_month or all."
+    if "target_transaction_id" in payload and (type(target_id) is not int or target_id <= 0):
+        fields["target_transaction_id"] = "Select one transaction from the matching records."
     if fields:
         return error_response("The Companion request is invalid.", "VALIDATION_ERROR", 400, fields)
 
+    user_id = int(get_jwt_identity())
+    target_mode = target_id is not None
+    intent = None
     try:
-        intent, clarification, evidence = build_companion_evidence(
-            int(get_jwt_identity()), scope, question, TransactionEvidenceService()
-        )
-        if intent is None:
+        if target_mode:
+            try:
+                target, evidence = build_target_evidence(user_id, scope, target_id, TransactionEvidenceService())
+            except TargetTransactionUnavailable:
+                base = TransactionEvidenceService().build(user_id, scope)
+                evidence = {key: base[key] for key in ("scope", "timezone", "period", "exclusions", "warnings")}
+                clarification = "Select one current transaction within the chosen scope and ask again."
+                return jsonify(data={
+                    "kind": "clarification", "message": clarification,
+                    "missing_or_ambiguous_information": clarification,
+                    "scope": scope, "period": evidence["period"], "evidence": evidence,
+                })
+            if "proposal_review" in payload:
+                try:
+                    result = build_reviewed_proposal(user_id, scope, target_id, proposal_review, TransactionEvidenceService())
+                except StaleProposalVersion as error:
+                    return error_response(str(error), "STALE_PROPOSAL_VERSION", 409)
+                except ValueError as error:
+                    return error_response(str(error), "VALIDATION_ERROR", 400)
+                return jsonify(data={**result, "scope": scope, "period": evidence["period"]})
+        else:
+            intent, clarification, evidence = build_companion_evidence(
+                user_id, scope, question, TransactionEvidenceService()
+            )
+        if not target_mode and intent is None:
             return jsonify(data={
                 "kind": "clarification",
                 "message": clarification,
@@ -150,22 +192,36 @@ def query_companion_v2():
         generator = create_json_generator(settings)
         record_provider_request_start(int(get_jwt_identity()))
         response = generator.generate_json(
-            COMPANION_SYSTEM_INSTRUCTIONS,
+            PROPOSAL_SYSTEM_INSTRUCTIONS if target_mode else COMPANION_SYSTEM_INSTRUCTIONS,
             question,
             evidence,
-            COMPANION_RESPONSE_SCHEMA,
+            PROPOSAL_RESPONSE_SCHEMA if target_mode else COMPANION_RESPONSE_SCHEMA,
         )
         try:
-            result = validate_companion_response(response, evidence)
+            result = validate_proposal_response(response, target, evidence) if target_mode else validate_companion_response(response, evidence)
         except ValueError as error:
             current_app.logger.warning("Companion provider response failed validation: %s", error)
-            result = build_companion_fallback_response(intent, evidence)
+            if target_mode:
+                message = "I couldn't prepare a safe change proposal. Review the selected record and ask again with one supported change."
+                result = {
+                    "kind": "clarification", "message": message,
+                    "missing_or_ambiguous_information": message, "evidence": evidence,
+                }
+            else:
+                result = build_companion_fallback_response(intent, evidence)
     except AIRateLimitExceededError as error:
         return error_response(str(error), "RATE_LIMIT_EXCEEDED", 429)
     except AIProviderTimeoutError as error:
         return error_response(str(error), "AI_PROVIDER_TIMEOUT", 504)
     except AIProviderResponseError as error:
         current_app.logger.warning("Companion provider returned an unusable response: %s", error)
+        if target_mode:
+            message = "I couldn't prepare a safe change proposal because the provider returned an unusable response. Try again or use Transaction History."
+            return jsonify(data={
+                "kind": "clarification", "message": message,
+                "missing_or_ambiguous_information": message,
+                "scope": scope, "period": evidence["period"], "evidence": evidence,
+            })
         fallback = build_companion_fallback_response(intent, evidence)
         return jsonify(data={**fallback, "scope": scope, "period": evidence["period"]})
     except AIProviderUnavailableError as error:

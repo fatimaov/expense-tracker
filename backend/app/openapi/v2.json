@@ -3,23 +3,24 @@
   "info": {
     "title": "Expense Tracker V2 API",
     "version": "2.0.0",
-    "description": "Authenticated transaction history and record management, transient assisted-entry drafts, and read-only Companion answers, plus public health and fixed category endpoints."
+    "description": "Authenticated transaction history and record management, transient assisted-entry drafts, and stateless Companion answers and reviewable transaction proposals, plus public health and fixed category endpoints."
   },
   "servers": [{ "url": "/api/v2" }],
   "paths": {
     "/companion/query": {
       "post": {
         "operationId": "queryCompanion",
-        "summary": "Ask one read-only question about transaction history",
-        "description": "Stateless and non-mutating. Current month is determined by the backend in Europe/Madrid. The provider receives only the question and minimal deterministic evidence for the supported intent. Unsupported requests receive a clarification. Questions, answers, and evidence are not persisted or logged.",
+        "summary": "Ask about transaction history or prepare one transaction proposal",
+        "description": "Stateless. Without target_transaction_id, the operation returns only a read-only answer or clarification. With one selected in-scope transaction ID, the provider may prepare one validated edit, soft-delete, or expense-context proposal. A proposal_review request revalidates user-edited transient values and refreshes its deterministic effect without invoking the provider. Proposals are transient and do not mutate records; users confirm them through the existing PUT or DELETE /transactions/{id} command. Current month is determined by the backend in Europe/Madrid. The provider receives only the question and minimal deterministic evidence for the selected intent. Questions, answers, proposals, and evidence are not persisted or logged.",
         "security": [{ "BearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CompanionQueryRequest" } } }
         },
         "responses": {
-          "200": { "description": "Validated transient answer or clarification and deterministic evidence.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CompanionQueryResponse" } } } },
-          "400": { "description": "Question is blank, longer than 1,000 characters, or scope is invalid.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationErrorResponse" } } } },
+          "200": { "description": "Validated transient answer, clarification, or unconfirmed transaction proposal and deterministic evidence.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CompanionQueryResponse" } } } },
+          "400": { "description": "Question is blank, longer than 1,000 characters, scope or target is invalid, or edited proposal fields fail validation.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationErrorResponse" } } } },
+          "409": { "description": "The selected record changed while its transient proposal was being edited." },
           "401": { "description": "Authentication is required." },
           "429": { "description": "The user's AI request limit has been reached.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
           "502": { "description": "The provider returned malformed or unsupported output.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
@@ -204,7 +205,9 @@
         "required": ["question", "scope"],
         "properties": {
           "question": { "type": "string", "minLength": 1, "maxLength": 1000 },
-          "scope": { "type": "string", "enum": ["current_month", "all"] }
+          "scope": { "type": "string", "enum": ["current_month", "all"] },
+          "target_transaction_id": { "type": "integer", "minimum": 1, "description": "One current transaction selected from the bounded matching-record result. Proposals are allowed only for this owned, non-deleted, in-scope record." },
+          "proposal_review": { "$ref": "#/components/schemas/CompanionProposalReview" }
         },
         "additionalProperties": false
       },
@@ -215,7 +218,8 @@
           "data": {
             "oneOf": [
               { "$ref": "#/components/schemas/CompanionAnswer" },
-              { "$ref": "#/components/schemas/CompanionClarification" }
+              { "$ref": "#/components/schemas/CompanionClarification" },
+              { "$ref": "#/components/schemas/CompanionProposalResponse" }
             ]
           }
         },
@@ -244,6 +248,48 @@
           "scope": { "type": "string", "enum": ["current_month", "all"] },
           "period": { "$ref": "#/components/schemas/CompanionPeriod" },
           "evidence": { "$ref": "#/components/schemas/CompanionEvidence" }
+        },
+        "additionalProperties": false
+      },
+      "CompanionProposalResponse": {
+        "type": "object",
+        "required": ["kind", "message", "missing_or_ambiguous_information", "scope", "period", "evidence", "proposal"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["proposal"] },
+          "message": { "type": "string" },
+          "missing_or_ambiguous_information": { "type": "string", "nullable": true },
+          "scope": { "type": "string", "enum": ["current_month", "all"] },
+          "period": { "$ref": "#/components/schemas/CompanionPeriod" },
+          "evidence": { "$ref": "#/components/schemas/CompanionEvidence" },
+          "proposal": { "$ref": "#/components/schemas/CompanionProposal" }
+        },
+        "additionalProperties": false
+      },
+      "CompanionProposal": {
+        "type": "object",
+        "description": "Transient, unconfirmed proposal. Confirmation delegates to the existing authenticated transaction update or soft-delete command.",
+        "required": ["operation", "target_transaction_id", "affected_fields", "current_record", "proposed_values", "uncertainty", "expected_effect", "proposal_version"],
+        "properties": {
+          "operation": { "type": "string", "enum": ["edit_transaction", "soft_delete_transaction", "change_transaction_context"] },
+          "target_transaction_id": { "type": "integer", "minimum": 1 },
+          "affected_fields": { "type": "array", "items": { "type": "string", "enum": ["amount", "transaction_date", "category_key", "notes", "b_u_c", "reflective_context"] } },
+          "current_record": { "$ref": "#/components/schemas/Transaction" },
+          "proposed_values": { "type": "object", "additionalProperties": { "type": ["string", "null"] } },
+          "uncertainty": { "type": "string" },
+          "expected_effect": { "type": "object", "description": "Deterministic monthly income, expense, net and category deltas, or an explicit no-effect notice.", "additionalProperties": true },
+          "proposal_version": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": false
+      },
+      "CompanionProposalReview": {
+        "type": "object",
+        "required": ["operation", "affected_fields", "proposed_values", "proposal_version", "uncertainty"],
+        "properties": {
+          "operation": { "type": "string", "enum": ["edit_transaction", "change_transaction_context"] },
+          "affected_fields": { "type": "array", "items": { "type": "string", "enum": ["amount", "transaction_date", "category_key", "notes", "b_u_c", "reflective_context"] } },
+          "proposed_values": { "type": "object", "additionalProperties": { "type": ["string", "null"] } },
+          "proposal_version": { "type": "string", "format": "date-time" },
+          "uncertainty": { "type": "string", "maxLength": 1000 }
         },
         "additionalProperties": false
       },
