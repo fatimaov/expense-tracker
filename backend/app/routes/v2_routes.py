@@ -24,6 +24,13 @@ from ..services.assisted_entry_service import (
     validate_receipt_image,
 )
 from ..services.ai_request_guard import record_provider_request_start
+from ..services.companion_service import (
+    COMPANION_RESPONSE_SCHEMA,
+    COMPANION_SYSTEM_INSTRUCTIONS,
+    build_companion_evidence,
+    validate_companion_response,
+)
+from ..services.transaction_evidence_service import TransactionEvidenceService
 from ..ai.config import AISettings
 from ..ai.errors import (
     AIConfigurationError,
@@ -104,6 +111,68 @@ def create_text_draft_v2():
     except ValueError:
         return error_response("The AI provider returned an unusable transaction draft. Try again or enter the transaction manually.", "AI_PROVIDER_INVALID_RESPONSE", 502)
     return jsonify(data=result)
+
+
+@api_v2.post("/companion/query")
+@jwt_required()
+def query_companion_v2():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or set(payload) != {"question", "scope"}:
+        return error_response("Provide a question and scope.", "VALIDATION_ERROR", 400, {
+            "question": "Enter a question of 1 to 1,000 characters.",
+            "scope": "Choose current_month or all.",
+        })
+    question = payload["question"]
+    scope = payload["scope"]
+    fields = {}
+    if not isinstance(question, str) or not question.strip() or len(question) > 1000:
+        fields["question"] = "Enter a question of 1 to 1,000 characters."
+    if not isinstance(scope, str) or scope not in {"current_month", "all"}:
+        fields["scope"] = "Choose current_month or all."
+    if fields:
+        return error_response("The Companion request is invalid.", "VALIDATION_ERROR", 400, fields)
+
+    try:
+        intent, clarification, evidence = build_companion_evidence(
+            int(get_jwt_identity()), scope, question, TransactionEvidenceService()
+        )
+        if intent is None:
+            return jsonify(data={
+                "kind": "clarification",
+                "message": clarification,
+                "missing_or_ambiguous_information": clarification,
+                "scope": scope,
+                "period": evidence["period"],
+                "evidence": evidence,
+            })
+        settings = AISettings.from_mapping(current_app.config)
+        generator = create_json_generator(settings)
+        record_provider_request_start(int(get_jwt_identity()))
+        response = generator.generate_json(
+            COMPANION_SYSTEM_INSTRUCTIONS,
+            question,
+            evidence,
+            COMPANION_RESPONSE_SCHEMA,
+        )
+        result = validate_companion_response(response, evidence)
+    except AIRateLimitExceededError as error:
+        return error_response(str(error), "RATE_LIMIT_EXCEEDED", 429)
+    except AIProviderTimeoutError as error:
+        return error_response(str(error), "AI_PROVIDER_TIMEOUT", 504)
+    except AIProviderResponseError as error:
+        return error_response(str(error), "AI_PROVIDER_INVALID_RESPONSE", 502)
+    except AIProviderUnavailableError as error:
+        return error_response(str(error), "AI_PROVIDER_UNAVAILABLE", 503)
+    except AIConfigurationError as error:
+        return error_response(str(error), "AI_CONFIGURATION_ERROR", 503)
+    except AIUnsupportedSchemaError as error:
+        return error_response(str(error), "AI_CONFIGURATION_ERROR", 503)
+    except ValueError:
+        return error_response(
+            "The Companion returned an unsupported response. Try a supported transaction question or use transaction history.",
+            "AI_PROVIDER_INVALID_RESPONSE", 502,
+        )
+    return jsonify(data={**result, "scope": scope, "period": evidence["period"]})
 
 
 @api_v2.post("/assisted-entry/receipt")

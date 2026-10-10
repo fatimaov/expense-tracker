@@ -137,6 +137,10 @@ class TransactionEvidenceService:
                 "expense": str(expense_total),
                 "net": str(income_total - expense_total),
             },
+            "transaction_counts": {
+                "income": sum(row.transaction_type == "income" for row in rows),
+                "expense": sum(row.transaction_type == "expense" for row in rows),
+            },
             "category_totals": [
                 {"category_key": key, "category_label": label, "transaction_type": kind, "total": str(total)}
                 for (key, label, kind), total in sorted(by_category.items())
@@ -144,6 +148,41 @@ class TransactionEvidenceService:
             "expenses_missing_context": missing_context,
             "selected_record_ids": [row["id"] for row in selected],
             "selected_records": selected,
+        }
+
+    def find_matching(self, user_id: int, scope: str, description: str, limit: int = 25) -> dict:
+        """Return bounded literal matches without exposing unrelated records."""
+        evidence = self.build(user_id, scope)
+        now = self._now_provider()
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=APP_TIMEZONE)
+        month_start = now.astimezone(APP_TIMEZONE).date().replace(day=1)
+        if month_start.month == 12:
+            next_month = date(month_start.year + 1, 1, 1)
+        else:
+            next_month = date(month_start.year, month_start.month + 1, 1)
+        statement = select(Transaction).where(
+            Transaction.user_id == user_id,
+            Transaction.deleted_at.is_(None),
+        )
+        if scope == "current_month":
+            statement = statement.where(
+                Transaction.transaction_date >= month_start,
+                Transaction.transaction_date < next_month,
+            )
+        rows = db.session.scalars(statement.order_by(
+            Transaction.transaction_date.desc(), Transaction.created_at.desc(), Transaction.id.desc()
+        )).all()
+        needle = description.strip().casefold()
+        matches = [row for row in rows if any(
+            needle in (value or "").casefold()
+            for value in (row.category.key, row.category.label, row.notes)
+        )]
+        return {
+            **{key: evidence[key] for key in ("scope", "timezone", "period", "exclusions", "warnings")},
+            "matching_count": len(matches),
+            "records": [self._record(row) for row in matches[:limit]],
+            "truncated": len(matches) > limit,
         }
 
     @staticmethod

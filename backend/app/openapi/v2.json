@@ -3,10 +3,31 @@
   "info": {
     "title": "Expense Tracker V2 API",
     "version": "2.0.0",
-    "description": "Authenticated transaction history and record management, including transient text and receipt-assisted entry drafts, plus public health and fixed category endpoints."
+    "description": "Authenticated transaction history and record management, transient assisted-entry drafts, and read-only Companion answers, plus public health and fixed category endpoints."
   },
   "servers": [{ "url": "/api/v2" }],
   "paths": {
+    "/companion/query": {
+      "post": {
+        "operationId": "queryCompanion",
+        "summary": "Ask one read-only question about transaction history",
+        "description": "Stateless and non-mutating. Current month is determined by the backend in Europe/Madrid. The provider receives only the question and minimal deterministic evidence for the supported intent. Unsupported requests receive a clarification. Questions, answers, and evidence are not persisted or logged.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CompanionQueryRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Validated transient answer or clarification and deterministic evidence.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CompanionQueryResponse" } } } },
+          "400": { "description": "Question is blank, longer than 1,000 characters, or scope is invalid.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationErrorResponse" } } } },
+          "401": { "description": "Authentication is required." },
+          "429": { "description": "The user's AI request limit has been reached.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
+          "502": { "description": "The provider returned malformed or unsupported output.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
+          "503": { "description": "The provider is unavailable or safely configured AI is not available.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
+          "504": { "description": "The provider request timed out.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } }
+        }
+      }
+    },
     "/assisted-entry/text": {
       "post": {
         "operationId": "createTextTransactionDraft",
@@ -178,6 +199,84 @@
       "BearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
     },
     "schemas": {
+      "CompanionQueryRequest": {
+        "type": "object",
+        "required": ["question", "scope"],
+        "properties": {
+          "question": { "type": "string", "minLength": 1, "maxLength": 1000 },
+          "scope": { "type": "string", "enum": ["current_month", "all"] }
+        },
+        "additionalProperties": false
+      },
+      "CompanionQueryResponse": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/CompanionAnswer" },
+              { "$ref": "#/components/schemas/CompanionClarification" }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "CompanionAnswer": {
+        "type": "object",
+        "required": ["kind", "message", "missing_or_ambiguous_information", "scope", "period", "evidence"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["answer"] },
+          "message": { "type": "string" },
+          "missing_or_ambiguous_information": { "type": "string", "nullable": true },
+          "scope": { "type": "string", "enum": ["current_month", "all"] },
+          "period": { "$ref": "#/components/schemas/CompanionPeriod" },
+          "evidence": { "$ref": "#/components/schemas/CompanionEvidence" }
+        },
+        "additionalProperties": false
+      },
+      "CompanionClarification": {
+        "type": "object",
+        "required": ["kind", "message", "missing_or_ambiguous_information", "scope", "period", "evidence"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["clarification"] },
+          "message": { "type": "string" },
+          "missing_or_ambiguous_information": { "type": "string" },
+          "scope": { "type": "string", "enum": ["current_month", "all"] },
+          "period": { "$ref": "#/components/schemas/CompanionPeriod" },
+          "evidence": { "$ref": "#/components/schemas/CompanionEvidence" }
+        },
+        "additionalProperties": false
+      },
+      "CompanionPeriod": {
+        "type": "object",
+        "required": ["start", "end_exclusive"],
+        "properties": {
+          "start": { "type": "string", "format": "date", "nullable": true },
+          "end_exclusive": { "type": "string", "format": "date", "nullable": true }
+        },
+        "additionalProperties": false
+      },
+      "CompanionEvidence": {
+        "type": "object",
+        "description": "Intent-specific deterministic aggregate or bounded record summaries, with scope, timezone, period, exclusions, and warnings.",
+        "required": ["scope", "timezone", "period", "exclusions", "warnings"],
+        "properties": {
+          "scope": { "type": "string", "enum": ["current_month", "all"] },
+          "timezone": { "type": "string", "enum": ["Europe/Madrid"] },
+          "period": { "$ref": "#/components/schemas/CompanionPeriod" },
+          "exclusions": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+          "warnings": { "type": "array", "items": { "type": "string" } },
+          "included_record_count": { "type": "integer", "minimum": 0 },
+          "transaction_type": { "type": "string", "enum": ["income", "expense"] },
+          "total": { "type": "object", "additionalProperties": { "type": "string" } },
+          "category_totals": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "matching_count": { "type": "integer", "minimum": 0 },
+          "missing_context_count": { "type": "integer", "minimum": 0 },
+          "records": { "type": "array", "maxItems": 25, "items": { "type": "object", "additionalProperties": true } },
+          "truncated": { "type": "boolean" }
+        },
+        "additionalProperties": true
+      },
       "CreateTransactionRequest": {
         "type": "object",
         "required": ["transaction_type", "amount", "transaction_date", "category_key"],
