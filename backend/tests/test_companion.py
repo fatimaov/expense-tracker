@@ -96,6 +96,42 @@ def test_missing_context_evidence_is_bounded_and_match_intent_is_literal(app, co
         assert {record["id"] for record in evidence["records"]} == {companion_rows["grocery"], companion_rows["old"]}
 
 
+def test_buc_question_excludes_expenses_missing_only_reflective_context(app, companion_rows):
+    with app.app_context():
+        category = db.session.scalar(select(Category).where(Category.key == "expense_food"))
+        reflective_only = Transaction(
+            user_id=app.config["TEST_USER_ID"], transaction_type="expense", amount="4.00",
+            transaction_date=date(2026, 10, 6), category=category, b_u_c="usage",
+        )
+        db.session.add(reflective_only)
+        db.session.commit()
+        intent, clarification, evidence = build_companion_evidence(
+            app.config["TEST_USER_ID"], "current_month", "Show expenses missing B/U/C", fixed_service()
+        )
+        assert intent == "missing_buc" and clarification is None
+        assert evidence["missing_context_count"] == 1
+        assert [record["id"] for record in evidence["records"]] == [companion_rows["grocery"]]
+
+
+def test_response_validation_normalizes_common_answer_and_clarification_shapes():
+    evidence = {"scope": "current_month", "period": {"start": "2026-10-01", "end_exclusive": "2026-11-01"}}
+    answer = validate_companion_response({
+        "type": "final", "answer": "You spent €12.50.", "confidence": 0.9,
+    }, evidence)
+    assert answer["kind"] == "answer"
+    assert answer["message"] == "You spent €12.50."
+    assert answer["missing_or_ambiguous_information"] is None
+    assert answer["evidence"] is evidence
+
+    clarification = validate_companion_response({
+        "data": {"type": "clarify", "response": "Which period do you mean?",
+                 "missing_information": "Please choose a period."},
+    }, evidence)
+    assert clarification["kind"] == "clarification"
+    assert clarification["message"] == "Which period do you mean?"
+    assert clarification["missing_or_ambiguous_information"] == "Please choose a period."
+
+
 def test_matching_results_are_limited_to_25_newest_with_truncation_warning(app):
     with app.app_context():
         category = db.session.scalar(select(Category).where(Category.key == "expense_food"))
@@ -183,7 +219,7 @@ def test_scoped_category_spending_question_is_not_misread_as_full_period_total(a
         assert "Find records matching" in clarification
 
 
-def test_unsupported_query_returns_local_clarification_and_proposal_output_is_safe_error(client, auth_headers, monkeypatch):
+def test_unsupported_query_clarifies_and_proposal_output_falls_back_to_server_evidence(client, auth_headers, companion_rows, monkeypatch):
     monkeypatch.setattr(v2_routes, "TransactionEvidenceService", lambda: fixed_service())
     unsupported = client.post("/api/v2/companion/query", json={"question": "Tell me about investments", "scope": "all"}, headers=auth_headers)
     assert unsupported.status_code == 200
@@ -191,9 +227,12 @@ def test_unsupported_query_returns_local_clarification_and_proposal_output_is_sa
     provider = FakeGenerator({"kind": "proposal", "message": "Change", "missing_or_ambiguous_information": None})
     monkeypatch.setattr(v2_routes, "create_json_generator", lambda settings: provider)
     monkeypatch.setattr(v2_routes, "record_provider_request_start", lambda user_id: None)
-    rejected = client.post("/api/v2/companion/query", json={"question": "How much did I spend?", "scope": "all"}, headers=auth_headers)
-    assert rejected.status_code == 502
-    assert rejected.get_json()["error"]["code"] == "AI_PROVIDER_INVALID_RESPONSE"
+    response = client.post("/api/v2/companion/query", json={"question": "How much did I spend?", "scope": "all"}, headers=auth_headers)
+    assert response.status_code == 200
+    result = response.get_json()["data"]
+    assert result["kind"] == "answer"
+    assert "could not be formatted" in result["message"]
+    assert result["evidence"]["total"] == {"expense": "19.50"}
 
 
 def test_companion_openapi_documents_authenticated_answer_contract(client):

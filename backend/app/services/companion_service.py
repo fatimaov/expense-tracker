@@ -155,6 +155,8 @@ COMPANION_SYSTEM_INSTRUCTIONS = (
 def validate_companion_response(response: object, evidence: dict) -> dict:
     if not isinstance(response, dict):
         raise ValueError("The Companion response was not a JSON object.")
+    if "evidence" in response:
+        raise ValueError("The Companion provider cannot supply or replace application evidence.")
 
     # Small local models often use different, but understandable, property names.
     # Normalize those into the app contract and ignore unrelated provider fields.
@@ -198,6 +200,17 @@ def validate_companion_response(response: object, evidence: dict) -> dict:
     ), None)
     if missing is None and isinstance(clarification, str) and clarification.strip():
         missing = clarification
+    if missing is None and nested is not None:
+        missing = next((
+            nested.get(key) for key in (
+                "missing_or_ambiguous_information", "missing_information", "clarification_needed",
+            ) if isinstance(nested.get(key), str) and nested[key].strip()
+        ), None)
+        nested_clarification = nested.get("clarification")
+        if missing is None and isinstance(nested_clarification, str) and nested_clarification.strip():
+            missing = nested_clarification
+        if kind == "clarification" and message is None and isinstance(nested_clarification, str):
+            message = nested_clarification
     if kind == "clarification" and message is None and isinstance(clarification, str):
         message = clarification
     if kind == "answer":
