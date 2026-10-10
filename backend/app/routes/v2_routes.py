@@ -27,6 +27,7 @@ from ..services.ai_request_guard import record_provider_request_start
 from ..services.companion_service import (
     COMPANION_RESPONSE_SCHEMA,
     COMPANION_SYSTEM_INSTRUCTIONS,
+    build_companion_fallback_response,
     build_companion_evidence,
     validate_companion_response,
 )
@@ -154,24 +155,25 @@ def query_companion_v2():
             evidence,
             COMPANION_RESPONSE_SCHEMA,
         )
-        result = validate_companion_response(response, evidence)
+        try:
+            result = validate_companion_response(response, evidence)
+        except ValueError as error:
+            current_app.logger.warning("Companion provider response failed validation: %s", error)
+            result = build_companion_fallback_response(intent, evidence)
     except AIRateLimitExceededError as error:
         return error_response(str(error), "RATE_LIMIT_EXCEEDED", 429)
     except AIProviderTimeoutError as error:
         return error_response(str(error), "AI_PROVIDER_TIMEOUT", 504)
     except AIProviderResponseError as error:
-        return error_response(str(error), "AI_PROVIDER_INVALID_RESPONSE", 502)
+        current_app.logger.warning("Companion provider returned an unusable response: %s", error)
+        fallback = build_companion_fallback_response(intent, evidence)
+        return jsonify(data={**fallback, "scope": scope, "period": evidence["period"]})
     except AIProviderUnavailableError as error:
         return error_response(str(error), "AI_PROVIDER_UNAVAILABLE", 503)
     except AIConfigurationError as error:
         return error_response(str(error), "AI_CONFIGURATION_ERROR", 503)
     except AIUnsupportedSchemaError as error:
         return error_response(str(error), "AI_CONFIGURATION_ERROR", 503)
-    except ValueError:
-        return error_response(
-            "The Companion returned an unsupported response. Try a supported transaction question or use transaction history.",
-            "AI_PROVIDER_INVALID_RESPONSE", 502,
-        )
     return jsonify(data={**result, "scope": scope, "period": evidence["period"]})
 
 

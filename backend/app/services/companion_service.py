@@ -25,7 +25,11 @@ def _classify_question(question: str) -> tuple[str | None, str | None]:
         return None, "I can answer transaction totals, category breakdowns, missing expense context, or supported record matches, but not provide advice or comparisons."
     if re.search(r"\b(on|for|at)\s+(food|groceries|transport|accommodation|activities|rent|coffee|shopping)\b", text):
         return None, "For a supported record subset, use “Find records matching: <description>”."
-    if any(term in text for term in ("missing context", "missing optional context", "without context", "missing b/u/c", "missing reflective context", "untagged expenses")):
+    if "missing b/u/c" in text:
+        return "missing_buc", None
+    if "missing reflective context" in text:
+        return "missing_reflective_context", None
+    if any(term in text for term in ("missing context", "missing optional context", "without context", "untagged expenses")):
         return "missing_context", None
     if any(term in text for term in ("breakdown", "by category", "categories")):
         if any(term in text for term in ("income", "earned", "earnings")):
@@ -65,10 +69,16 @@ def build_companion_evidence(user_id: int, scope: str, question: str, evidence_s
             **common, "included_record_count": base["transaction_counts"][transaction_type],
             "transaction_type": transaction_type, "category_totals": categories,
         }
-    if intent == "missing_context":
+    if intent in {"missing_context", "missing_buc", "missing_reflective_context"}:
         records = sorted(base["expenses_missing_context"], key=lambda row: (row["transaction_date"], row["id"]), reverse=True)
+        if intent == "missing_buc":
+            records = [row for row in records if "b_u_c" in row["missing"]]
+        elif intent == "missing_reflective_context":
+            records = [row for row in records if "reflective_context" in row["missing"]]
         truncated = len(records) > MAX_COMPANION_RECORDS
         warnings = list(common["warnings"])
+        if intent != "missing_context":
+            warnings = [warning for warning in warnings if warning != "Some expenses are missing optional context."]
         if truncated:
             warnings.append("Only the 25 newest records missing context are included.")
         return intent, None, {
@@ -83,6 +93,43 @@ def build_companion_evidence(user_id: int, scope: str, question: str, evidence_s
         _, description = _classify_question(question)
         return intent, None, service.find_matching(user_id, scope, description, MAX_COMPANION_RECORDS)
     raise CompanionQuestionError("Unsupported Companion question.")
+
+
+def build_companion_fallback_response(intent: str, evidence: dict) -> dict:
+    """Build a concise deterministic answer when a provider cannot meet the response contract."""
+    if intent in {"missing_context", "missing_buc", "missing_reflective_context"}:
+        count = evidence["missing_context_count"]
+        if intent == "missing_buc":
+            subject = "B/U/C"
+        elif intent == "missing_reflective_context":
+            subject = "reflective context"
+        else:
+            subject = "B/U/C or reflective context"
+        message = f"The AI response could not be formatted. The application found {count} expense{'s' if count != 1 else ''} missing {subject}. See Evidence and limitations below for the records and missing fields."
+    elif intent == "matching":
+        count = evidence["matching_count"]
+        message = f"The AI response could not be formatted. The application found {count} matching record{'s' if count != 1 else ''}. See Evidence and limitations below for the results."
+    elif intent in {"income_total", "expense_total", "net"}:
+        total = evidence["total"]
+        key = {"income_total": "income", "expense_total": "expense", "net": "net"}[intent]
+        label = {"income": "Income", "expense": "Expense", "net": "Net"}[key]
+        message = f"The AI response could not be formatted. {label} total: €{total[key]} from the application calculation."
+    elif intent in {"income_categories", "expense_categories"}:
+        categories = evidence["category_totals"]
+        label = "income" if intent == "income_categories" else "expenses"
+        if categories:
+            breakdown = "; ".join(f"{item['category_label']}: €{item['total']}" for item in categories)
+            message = f"The AI response could not be formatted. {label.capitalize()} by category: {breakdown}."
+        else:
+            message = f"The AI response could not be formatted. There are no {label} in this period."
+    else:
+        message = "I couldn't format an AI explanation. The verified results are available under Evidence and limitations below."
+    return {
+        "kind": "answer",
+        "message": message,
+        "missing_or_ambiguous_information": None,
+        "evidence": evidence,
+    }
 
 
 COMPANION_RESPONSE_SCHEMA = {
@@ -106,22 +153,64 @@ COMPANION_SYSTEM_INSTRUCTIONS = (
 
 
 def validate_companion_response(response: object, evidence: dict) -> dict:
-    if not isinstance(response, dict) or set(response) != {"kind", "message", "missing_or_ambiguous_information"}:
-        raise ValueError("The Companion response did not match the supported answer contract.")
-    if response["kind"] not in {"answer", "clarification"}:
+    if not isinstance(response, dict):
+        raise ValueError("The Companion response was not a JSON object.")
+
+    # Small local models often use different, but understandable, property names.
+    # Normalize those into the app contract and ignore unrelated provider fields.
+    def normalize_kind(value):
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            return "__invalid__"
+        value = value.strip().casefold()
+        if value in {"clarify", "needs_clarification", "need_clarification"}:
+            return "clarification"
+        if value in {"final", "result"}:
+            return "answer"
+        return value
+
+    kind = normalize_kind(response.get("kind") or response.get("type"))
+
+    clarification = response.get("clarification")
+    message = next((
+        response.get(key) for key in ("message", "answer", "response", "explanation", "text", "content")
+        if isinstance(response.get(key), str) and response[key].strip()
+    ), None)
+    nested = next((response.get(key) for key in ("data", "result", "output", "answer")
+                   if isinstance(response.get(key), dict)), None)
+    if message is None and nested is not None:
+        message = next((
+            nested.get(key) for key in ("message", "answer", "response", "explanation", "text", "content")
+            if isinstance(nested.get(key), str) and nested[key].strip()
+        ), None)
+        if kind is None:
+            kind = normalize_kind(nested.get("kind") or nested.get("type"))
+
+    if kind is None:
+        kind = "clarification" if isinstance(clarification, str) and clarification.strip() else "answer"
+    if kind not in {"answer", "clarification"}:
         raise ValueError("The Companion response kind is not supported.")
-    message = response["message"]
-    missing = response["missing_or_ambiguous_information"]
+    missing = next((
+        response.get(key) for key in (
+            "missing_or_ambiguous_information", "missing_information", "clarification_needed",
+        ) if isinstance(response.get(key), str) and response[key].strip()
+    ), None)
+    if missing is None and isinstance(clarification, str) and clarification.strip():
+        missing = clarification
+    if kind == "clarification" and message is None and isinstance(clarification, str):
+        message = clarification
+    if kind == "answer":
+        missing = None
+
     if not isinstance(message, str) or not message.strip() or len(message) > 4000:
         raise ValueError("The Companion response did not match the supported answer contract.")
     if missing is not None and (not isinstance(missing, str) or len(missing) > 1000):
         raise ValueError("The Companion response did not match the supported answer contract.")
-    if response["kind"] == "clarification" and not missing:
+    if kind == "clarification" and not missing:
         raise ValueError("The Companion clarification is incomplete.")
-    if response["kind"] == "answer" and missing is not None:
-        raise ValueError("The Companion answer contains clarification-only fields.")
     return {
-        "kind": response["kind"],
+        "kind": kind,
         "message": message.strip(),
         "missing_or_ambiguous_information": missing,
         "evidence": evidence,
