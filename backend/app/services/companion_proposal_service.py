@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 
 from .transaction_evidence_service import EvidenceSelectionError, TransactionEvidenceService
@@ -44,6 +45,46 @@ PROPOSAL_SYSTEM_INSTRUCTIONS = (
     "Do not calculate expected effects or provide replacement evidence."
 )
 
+EXPLICIT_EDIT = re.compile(
+    r"^\s*(?:please\s+)?(?:change|update|set|edit)\s+(?:the\s+)?"
+    r"(?P<field>amount|transaction date|date|category|notes)\s+(?:to|as)\s*(?P<value>.+?)\s*[.!]?\s*$",
+    re.IGNORECASE,
+)
+EXPLICIT_CLEAR_NOTES = re.compile(r"^\s*(?:please\s+)?(?:clear|remove)\s+(?:the\s+)?notes\s*[.!]?\s*$", re.IGNORECASE)
+EXPLICIT_CONTEXT_SET = re.compile(
+    r"^\s*(?:please\s+)?(?:change|update|set)\s+(?:the\s+)?"
+    r"(?P<field>b\s*/\s*u\s*/\s*c|spending context|reflective context)\s+(?:to|as)\s+"
+    r"(?:a\s+)?(?P<value>bill|usage|choice|need|love|like|want|none|unset)\s*[.!]?\s*$",
+    re.IGNORECASE,
+)
+EXPLICIT_CONTEXT_CLEAR = re.compile(
+    r"^\s*(?:please\s+)?(?:clear|remove)\s+(?:the\s+)?"
+    r"(?P<field>b\s*/\s*u\s*/\s*c|spending context|reflective context)"
+    r"(?:\s+(?:context|tag|value))?\s*[.!]?\s*$",
+    re.IGNORECASE,
+)
+EXPLICIT_CONTEXT_MARK = re.compile(
+    r"^\s*(?:please\s+)?(?:mark|classify)\s+(?:this|the selected)(?:\s+(?:expense|record|transaction))?\s+as\s+"
+    r"(?:a\s+)?(?P<first>bill|usage|choice|need|love|like|want)"
+    r"(?:\s+and\s+(?:a\s+)?(?P<second>bill|usage|choice|need|love|like|want))?\s*[.!]?\s*$",
+    re.IGNORECASE,
+)
+EXPLICIT_DELETE = re.compile(
+    r"^\s*(?:please\s+)?(?:delete|remove)\s+(?:(?:the\s+)?(?:selected|this)\s+)?"
+    r"(?:the\s+)?(?:transaction|record|it)\s*[.!]?\s*$",
+    re.IGNORECASE,
+)
+
+TRANSACTION_CATEGORIES = {
+    "expense_transport": ("expense", "Transport"),
+    "expense_accommodation": ("expense", "Accommodation"),
+    "expense_food": ("expense", "Food"),
+    "expense_activities": ("expense", "Activities"),
+    "expense_other": ("expense", "Other"),
+    "income_salary": ("income", "Salary"),
+    "income_other": ("income", "Other"),
+}
+
 
 class TargetTransactionUnavailable(ValueError):
     """The selected target cannot safely be used in this request's scope."""
@@ -51,6 +92,101 @@ class TargetTransactionUnavailable(ValueError):
 
 class StaleProposalVersion(ValueError):
     """The record changed after the proposal was prepared."""
+
+
+def _explicit_context_fields(question: str) -> dict | None:
+    match = EXPLICIT_CONTEXT_SET.fullmatch(question)
+    if match:
+        value = match.group("value").casefold()
+        field = "b_u_c" if match.group("field").casefold().startswith(("b", "spending")) else "reflective_context"
+        if value in {"none", "unset"}:
+            value = None
+        return {field: value}
+
+    match = EXPLICIT_CONTEXT_CLEAR.fullmatch(question)
+    if match:
+        field = "b_u_c" if match.group("field").casefold().startswith(("b", "spending")) else "reflective_context"
+        return {field: None}
+
+    match = EXPLICIT_CONTEXT_MARK.fullmatch(question)
+    if match:
+        fields = {}
+        for value in (match.group("first"), match.group("second")):
+            if value is None:
+                continue
+            value = value.casefold()
+            if value in {"bill", "usage", "choice"}:
+                fields["b_u_c"] = value
+            else:
+                fields["reflective_context"] = value
+        return fields
+    return None
+
+
+def _explicit_edit_field(question: str, target) -> dict | None:
+    if EXPLICIT_CLEAR_NOTES.fullmatch(question):
+        return {"notes": ""}
+
+    match = EXPLICIT_EDIT.fullmatch(question)
+    if not match:
+        return None
+    field = match.group("field").casefold()
+    value = match.group("value").strip()
+    if field == "amount":
+        value = value.strip("€ ").replace(",", ".")
+        if not re.fullmatch(r"[0-9]+(?:\.[0-9]{1,2})?", value):
+            raise ValueError("Enter one amount using digits and up to two decimal places.")
+        return {"amount": value}
+    if field in {"date", "transaction date"}:
+        return {"transaction_date": value}
+    if field == "category":
+        normalized = value.casefold().replace(" ", "_")
+        options = {
+            key: label for key, (kind, label) in TRANSACTION_CATEGORIES.items()
+            if kind == target.transaction_type
+        }
+        category = next((
+            key for key, label in options.items()
+            if normalized in {key.casefold(), label.casefold()}
+        ), None)
+        if category is None:
+            raise ValueError("Choose one category supported for the selected transaction type.")
+        return {"category_key": category}
+    if value.startswith(('"', "'")) and value.endswith(value[0]) and len(value) >= 2:
+        value = value[1:-1]
+    return {"notes": value}
+
+
+def build_explicit_action_proposal(question: str, target, evidence: dict) -> dict | None:
+    """Build validated proposals for clear single-operation transaction commands."""
+    if EXPLICIT_DELETE.fullmatch(question):
+        operation, proposed_values = "soft_delete_transaction", {}
+    else:
+        context_fields = _explicit_context_fields(question)
+        edit_fields = _explicit_edit_field(question, target)
+        if context_fields is not None and edit_fields is not None:
+            return None
+        if context_fields is not None:
+            operation, proposed_values = "change_transaction_context", context_fields
+        elif edit_fields is not None:
+            operation, proposed_values = "edit_transaction", edit_fields
+        else:
+            return None
+
+    affected_fields = list(proposed_values)
+    response = {
+        "kind": "proposal",
+        "message": "I prepared the requested transaction change for review.",
+        "missing_or_ambiguous_information": None,
+        "proposal": {
+            "operation": operation,
+            "target_transaction_id": target.id,
+            "affected_fields": affected_fields,
+            "proposed_values": proposed_values,
+            "uncertainty": "The requested change was read directly from your instruction; review it before confirming.",
+        },
+    }
+    return validate_proposal_response(response, target, evidence)
 
 
 def build_target_evidence(user_id: int, scope: str, target_id: int, evidence_service=None):

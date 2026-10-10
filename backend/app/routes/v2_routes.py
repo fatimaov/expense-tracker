@@ -37,6 +37,7 @@ from ..services.companion_proposal_service import (
     PROPOSAL_SYSTEM_INSTRUCTIONS,
     StaleProposalVersion,
     TargetTransactionUnavailable,
+    build_explicit_action_proposal,
     build_reviewed_proposal,
     build_target_evidence,
     validate_proposal_response,
@@ -174,6 +175,14 @@ def query_companion_v2():
                     return error_response(str(error), "STALE_PROPOSAL_VERSION", 409)
                 except ValueError as error:
                     return error_response(str(error), "VALIDATION_ERROR", 400)
+                return jsonify(data={**result, "scope": scope, "period": evidence["period"]})
+            try:
+                result = build_explicit_action_proposal(question, target, evidence)
+            except ValueError as error:
+                return error_response(
+                    str(error), "VALIDATION_ERROR", 400, getattr(error, "fields", None),
+                )
+            if result is not None:
                 return jsonify(data={**result, "scope": scope, "period": evidence["period"]})
         else:
             intent, clarification, evidence = build_companion_evidence(

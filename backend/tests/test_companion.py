@@ -271,7 +271,7 @@ def test_targeted_companion_returns_transient_proposal_with_deterministic_effect
     monkeypatch.setattr(v2_routes, "record_provider_request_start", lambda user_id: None)
 
     response = client.post("/api/v2/companion/query", json={
-        "question": "Change the amount to €15",
+        "question": "Please suggest an edit for this record.",
         "scope": "current_month",
         "target_transaction_id": companion_rows["grocery"],
     }, headers=auth_headers)
@@ -289,6 +289,79 @@ def test_targeted_companion_returns_transient_proposal_with_deterministic_effect
     }]
     assert set(provider.call[2]) == {"scope", "timezone", "period", "exclusions", "warnings", "target_transaction"}
     assert "Old shop" not in str(provider.call[2])
+    with app.app_context():
+        stored = db.session.get(Transaction, companion_rows["grocery"])
+        assert str(stored.amount) == "12.50"
+        assert stored.deleted_at is None
+
+
+def test_explicit_amount_change_builds_reviewable_proposal_without_provider(client, auth_headers, app, companion_rows, monkeypatch):
+    monkeypatch.setattr(v2_routes, "TransactionEvidenceService", lambda: fixed_service())
+    monkeypatch.setattr(
+        v2_routes, "create_json_generator",
+        lambda settings: pytest.fail("an explicit amount change should not depend on the AI provider"),
+    )
+    monkeypatch.setattr(v2_routes, "record_provider_request_start", lambda user_id: pytest.fail("no provider request should be recorded"))
+
+    response = client.post("/api/v2/companion/query", json={
+        "question": "Change the amount to €18.50",
+        "scope": "current_month",
+        "target_transaction_id": companion_rows["grocery"],
+    }, headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.get_json()["data"]
+    proposal = data["proposal"]
+    assert data["kind"] == "proposal"
+    assert proposal["operation"] == "edit_transaction"
+    assert proposal["target_transaction_id"] == companion_rows["grocery"]
+    assert proposal["affected_fields"] == ["amount"]
+    assert proposal["proposed_values"] == {"amount": "18.50"}
+    assert proposal["expected_effect"]["monthly_deltas"][0]["expense_delta"] == "6.00"
+    with app.app_context():
+        stored = db.session.get(Transaction, companion_rows["grocery"])
+        assert str(stored.amount) == "12.50"
+        assert stored.deleted_at is None
+
+
+@pytest.mark.parametrize(("question", "operation", "values"), [
+    ("Change the date to 2026-10-06", "edit_transaction", {"transaction_date": "2026-10-06"}),
+    ("Change the category to Food", "edit_transaction", {"category_key": "expense_food"}),
+    ('Change the notes to "Updated note"', "edit_transaction", {"notes": "Updated note"}),
+    ("Delete this transaction", "soft_delete_transaction", {}),
+    ("Delete the transaction", "soft_delete_transaction", {}),
+    ("Set B/U/C to Choice", "change_transaction_context", {"b_u_c": "choice"}),
+    ("Set reflective context to Like", "change_transaction_context", {"reflective_context": "like"}),
+    ("Clear B/U/C", "change_transaction_context", {"b_u_c": None}),
+    ("Mark this as a Choice and Like", "change_transaction_context", {
+        "b_u_c": "choice", "reflective_context": "like",
+    }),
+])
+def test_explicit_transaction_actions_build_reviewable_proposals_without_provider(
+    client, auth_headers, app, companion_rows, monkeypatch, question, operation, values,
+):
+    monkeypatch.setattr(v2_routes, "TransactionEvidenceService", lambda: fixed_service())
+    monkeypatch.setattr(
+        v2_routes, "create_json_generator",
+        lambda settings: pytest.fail("an explicit transaction action should not depend on the AI provider"),
+    )
+    monkeypatch.setattr(v2_routes, "record_provider_request_start", lambda user_id: pytest.fail("no provider request should be recorded"))
+
+    response = client.post("/api/v2/companion/query", json={
+        "question": question,
+        "scope": "current_month",
+        "target_transaction_id": companion_rows["grocery"],
+    }, headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.get_json()["data"]
+    proposal = data["proposal"]
+    assert data["kind"] == "proposal"
+    assert proposal["operation"] == operation
+    assert proposal["target_transaction_id"] == companion_rows["grocery"]
+    assert proposal["affected_fields"] == list(values)
+    assert proposal["proposed_values"] == values
+    assert proposal["proposal_version"] == proposal["current_record"]["updated_at"]
     with app.app_context():
         stored = db.session.get(Transaction, companion_rows["grocery"])
         assert str(stored.amount) == "12.50"
