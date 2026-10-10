@@ -16,7 +16,13 @@ from ..services.transaction_service import (
     serialize_created_transaction,
     update_transaction,
 )
-from ..services.assisted_entry_service import create_text_transaction_draft
+from ..services.assisted_entry_service import (
+    MAX_RECEIPT_BYTES,
+    ReceiptUploadValidationError,
+    create_receipt_transaction_draft,
+    create_text_transaction_draft,
+    validate_receipt_image,
+)
 from ..services.ai_request_guard import record_provider_request_start
 from ..ai.config import AISettings
 from ..ai.errors import (
@@ -97,6 +103,86 @@ def create_text_draft_v2():
         return error_response(str(error), "AI_CONFIGURATION_ERROR", 503)
     except ValueError:
         return error_response("The AI provider returned an unusable transaction draft. Try again or enter the transaction manually.", "AI_PROVIDER_INVALID_RESPONSE", 502)
+    return jsonify(data=result)
+
+
+@api_v2.post("/assisted-entry/receipt")
+@jwt_required()
+def create_receipt_draft_v2():
+    if request.mimetype != "multipart/form-data":
+        return error_response(
+            "Upload one receipt image as multipart form data.",
+            "VALIDATION_ERROR",
+            400,
+            {"receipt": "Choose one JPEG, PNG, or WebP image."},
+        )
+    # Leave room for multipart headers while enforcing the image-size limit on its bytes below.
+    if request.content_length is not None and request.content_length > MAX_RECEIPT_BYTES + 65536:
+        return error_response(
+            "The receipt image is larger than 10 MB.", "UPLOAD_TOO_LARGE", 413,
+            {"receipt": "Choose an image that is 10 MB or smaller."},
+        )
+
+    uploaded_files = [
+        (field, file)
+        for field in request.files
+        for file in request.files.getlist(field)
+    ]
+    if len(uploaded_files) != 1 or uploaded_files[0][0] != "receipt":
+        return error_response(
+            "Upload exactly one receipt image.", "VALIDATION_ERROR",
+            400, {"receipt": "Choose exactly one image file."},
+        )
+    if request.form:
+        return error_response(
+            "Upload only the receipt image.", "VALIDATION_ERROR",
+            400, {"receipt": "Remove additional form fields and try again."},
+        )
+    receipt_file = uploaded_files[0][1]
+    if not receipt_file.filename:
+        return error_response(
+            "Choose a receipt image.", "VALIDATION_ERROR",
+            400, {"receipt": "Choose a file before creating a draft."},
+        )
+    media_type = (receipt_file.mimetype or "").split(";", 1)[0].lower()
+    if media_type not in {"image/jpeg", "image/png", "image/webp"}:
+        return error_response(
+            "Choose a JPEG, PNG, or WebP image.", "VALIDATION_ERROR",
+            400, {"receipt": "This image format is not supported."},
+        )
+    image_bytes = receipt_file.stream.read(MAX_RECEIPT_BYTES + 1)
+    if len(image_bytes) > MAX_RECEIPT_BYTES:
+        return error_response(
+            "The receipt image is larger than 10 MB.", "UPLOAD_TOO_LARGE", 413,
+            {"receipt": "Choose an image that is 10 MB or smaller."},
+        )
+    try:
+        validate_receipt_image(image_bytes, media_type)
+    except ReceiptUploadValidationError as error:
+        return error_response(str(error), "VALIDATION_ERROR", error.status_code, error.fields)
+
+    try:
+        settings = AISettings.from_mapping(current_app.config)
+        generator = create_json_generator(settings)
+        record_provider_request_start(int(get_jwt_identity()))
+        result = create_receipt_transaction_draft(image_bytes, media_type, generator)
+    except AIRateLimitExceededError as error:
+        return error_response(str(error), "RATE_LIMIT_EXCEEDED", 429)
+    except AIProviderTimeoutError as error:
+        return error_response(str(error), "AI_PROVIDER_TIMEOUT", 504)
+    except AIProviderResponseError as error:
+        return error_response(str(error), "AI_PROVIDER_INVALID_RESPONSE", 502)
+    except AIProviderUnavailableError as error:
+        return error_response(str(error), "AI_PROVIDER_UNAVAILABLE", 503)
+    except AIConfigurationError as error:
+        return error_response(str(error), "AI_CONFIGURATION_ERROR", 503)
+    except AIUnsupportedSchemaError as error:
+        return error_response(str(error), "AI_CONFIGURATION_ERROR", 503)
+    except ValueError:
+        return error_response(
+            "The AI provider returned an unusable receipt draft. Try again or enter the transaction manually.",
+            "AI_PROVIDER_INVALID_RESPONSE", 502,
+        )
     return jsonify(data=result)
 
 

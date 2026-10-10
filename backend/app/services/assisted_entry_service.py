@@ -1,9 +1,12 @@
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 import re
+from io import BytesIO
+import warnings
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
+from PIL import Image
 
 from ..extensions import db
 from ..models import Category
@@ -38,6 +41,94 @@ TEXT_DRAFT_RESPONSE_SCHEMA = {
         },
     },
 }
+
+RECEIPT_DRAFT_RESPONSE_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["transaction_type", "amount", "transaction_date", "category_key", "notes", "uncertainties"],
+    "properties": {
+        "transaction_type": {"anyOf": [{"type": "string", "enum": ["expense"]}, {"type": "null"}]},
+        "amount": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "transaction_date": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "category_key": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "uncertainties": TEXT_DRAFT_RESPONSE_SCHEMA["properties"]["uncertainties"],
+    },
+}
+
+RECEIPT_MEDIA_FORMATS = {
+    "image/jpeg": "JPEG",
+    "image/png": "PNG",
+    "image/webp": "WEBP",
+}
+MAX_RECEIPT_BYTES = 10 * 1024 * 1024
+
+RECEIPT_SYSTEM_INSTRUCTIONS = (
+    "Extract a draft for one expense from this receipt. Use only the supplied fixed expense categories and current date. "
+    "Return transaction_type as expense or null. Never propose income, B/U/C, or reflective context. "
+    "Extract only a clearly printed final payable total, transaction date, supported expense category, and concise merchant "
+    "or relevant receipt detail for notes. Do not invent or estimate a total, date, merchant, category, or tax treatment. "
+    "If a value is missing, uncertain, or unreadable, return null and briefly explain it in uncertainties. "
+    "Return only the requested JSON object."
+)
+
+
+class ReceiptUploadValidationError(ValueError):
+    def __init__(self, message: str, fields: dict[str, str], status_code: int = 400):
+        super().__init__(message)
+        self.fields = fields
+        self.status_code = status_code
+
+
+def validate_receipt_image(image_bytes: bytes, media_type: str) -> None:
+    expected_format = RECEIPT_MEDIA_FORMATS.get(media_type)
+    if expected_format is None:
+        raise ReceiptUploadValidationError(
+            "Choose a JPEG, PNG, or WebP image.", {"receipt": "This image format is not supported."}
+        )
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(BytesIO(image_bytes), formats=[expected_format]) as image:
+                if image.format != expected_format:
+                    raise ValueError("Image format does not match its media type.")
+                image.verify()
+            with Image.open(BytesIO(image_bytes), formats=[expected_format]) as image:
+                if image.format != expected_format:
+                    raise ValueError("Image format does not match its media type.")
+                image.load()
+    except Exception as error:
+        raise ReceiptUploadValidationError(
+            "The uploaded image could not be read. Choose a valid JPEG, PNG, or WebP image.",
+            {"receipt": "This image is invalid or damaged."},
+        ) from error
+
+
+def create_receipt_transaction_draft(
+    image_bytes: bytes, media_type: str, generator, now: datetime | None = None
+) -> dict:
+    """Return a validated, transient receipt draft without writing transaction data."""
+    categories = list(db.session.scalars(
+        select(Category).where(Category.transaction_type == "expense").order_by(Category.key)
+    ).all())
+    current = now or datetime.now(APP_TIMEZONE)
+    current_date = current.astimezone(APP_TIMEZONE).date() if current.tzinfo else current.date()
+    context = {
+        "media_type": media_type,
+        "current_date": current_date.isoformat(),
+        "categories": [
+            {"key": category.key, "label": category.label, "transaction_type": category.transaction_type}
+            for category in categories
+        ],
+    }
+    proposed = generator.generate_json_from_image(
+        RECEIPT_SYSTEM_INSTRUCTIONS,
+        image_bytes,
+        media_type,
+        context,
+        RECEIPT_DRAFT_RESPONSE_SCHEMA,
+    )
+    return _validate_provider_draft(proposed, categories, current_date, allowed_types={"expense"})
 
 SYSTEM_INSTRUCTIONS = (
     "Extract a draft for one one-time income or expense from the user's text. "
@@ -124,7 +215,12 @@ def create_text_transaction_draft(text: str, generator, now: datetime | None = N
     return _validate_provider_draft(proposed, categories, current_date)
 
 
-def _validate_provider_draft(proposed: object, categories: list[Category], current_date: date) -> dict:
+def _validate_provider_draft(
+    proposed: object,
+    categories: list[Category],
+    current_date: date,
+    allowed_types: set[str] = {"income", "expense"},
+) -> dict:
     if not isinstance(proposed, dict) or set(proposed) != set(TEXT_DRAFT_RESPONSE_SCHEMA["required"]):
         raise ValueError("The AI provider returned an unusable transaction draft.")
 
@@ -150,7 +246,7 @@ def _validate_provider_draft(proposed: object, categories: list[Category], curre
             uncertain.setdefault(field, "The suggested value could not be validated.")
             continue
         if field == "transaction_type":
-            if value not in {"income", "expense"}:
+            if value not in allowed_types:
                 uncertain.setdefault(field, "Choose income or expense before saving.")
                 continue
         elif field == "amount":
