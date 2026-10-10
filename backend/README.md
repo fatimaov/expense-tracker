@@ -28,17 +28,24 @@ access. Prompts, provider responses, credentials, and transaction data are not
 written to the request-start table or application logs.
 
 For local development, install [LM Studio](https://lmstudio.ai/), download and
-load a text model that supports JSON-schema output, and start its local server.
+load a model that supports JSON-schema output, and start its local server.
 Set `AI_PROVIDER=lm_studio`, `LM_STUDIO_BASE_URL` (usually
 `http://localhost:1234/v1`), and `LM_STUDIO_MODEL` to the model identifier shown
-by the server. The local adapter uses the OpenAI-compatible endpoint with one
-request attempt and a 30-second timeout.
+by the server. Receipt drafts also require the selected LM Studio model to
+support image input (vision). The local adapter uses the OpenAI-compatible
+endpoint with one request attempt and a 30-second timeout.
 
 Production may set `AI_PROVIDER=gemini`, `GEMINI_API_KEY`, and `GEMINI_MODEL`.
 Store the key in the deployment's server-side secret manager; never expose it
 to frontend configuration. The Gemini adapter requests JSON-schema output,
-uses a 30-second timeout, and disables retries. `AI_REQUEST_TIMEOUT_SECONDS`
-is fixed at `30` for this layer.
+and the configured model must support image input for receipt drafts. It uses a
+30-second timeout and disables retries. `AI_REQUEST_TIMEOUT_SECONDS` is fixed
+at `30` for this layer.
+
+Receipt uploads accept one JPEG, PNG, or WebP image up to 10 MB. The image is
+validated and processed for the request, then discarded. The app does not
+persist the image, extracted content, or draft. Tests use in-memory image
+fixtures and mocked provider results; they never call a live provider.
 
 Provider selection and adapter tests inject fake clients. They do not require
 LM Studio, a Gemini key, or network access. The per-user database guard permits

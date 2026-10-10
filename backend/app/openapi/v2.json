@@ -3,7 +3,7 @@
   "info": {
     "title": "Expense Tracker V2 API",
     "version": "2.0.0",
-    "description": "Authenticated transaction history and record management, including transient AI assisted-entry drafts, plus public health and fixed category endpoints."
+    "description": "Authenticated transaction history and record management, including transient text and receipt-assisted entry drafts, plus public health and fixed category endpoints."
   },
   "servers": [{ "url": "/api/v2" }],
   "paths": {
@@ -21,6 +21,33 @@
           "200": { "description": "Transient editable draft and validation notes.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextDraftResponse" } } } },
           "400": { "description": "Text is blank, over 1,000 characters, or malformed.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationErrorResponse" } } } },
           "401": { "description": "Authentication is required." },
+          "429": { "description": "The user's AI request limit has been reached.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
+          "502": { "description": "The provider returned malformed or unusable output.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
+          "503": { "description": "The provider is unavailable or safely configured AI is not available.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
+          "504": { "description": "The provider request timed out.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } }
+        }
+      }
+    },
+    "/assisted-entry/receipt": {
+      "post": {
+        "operationId": "createReceiptTransactionDraft",
+        "summary": "Create a transient transaction draft from one receipt image",
+        "description": "Accepts one JPEG, PNG, or WebP image no larger than 10 MB. The backend validates file count, declared media type, size, and image decodability before starting provider processing. The provider receives only the image, its media type, the server's current Europe/Madrid date, and fixed expense categories. The upload, extracted content, and draft are transient and are not stored or logged. Review and save any values through POST /transactions.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": { "$ref": "#/components/schemas/ReceiptDraftRequest" },
+              "encoding": { "receipt": { "contentType": "image/jpeg, image/png, image/webp" } }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Transient editable expense draft and validation notes.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReceiptDraftResponse" } } } },
+          "400": { "description": "The upload is missing, contains multiple files, uses an unsupported media type, or is invalid or damaged.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationErrorResponse" } } } },
+          "401": { "description": "Authentication is required." },
+          "413": { "description": "The image exceeds the 10 MB upload limit.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationErrorResponse" } } } },
           "429": { "description": "The user's AI request limit has been reached.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
           "502": { "description": "The provider returned malformed or unusable output.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
           "503": { "description": "The provider is unavailable or safely configured AI is not available.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AIErrorResponse" } } } },
@@ -201,6 +228,43 @@
             "required": ["draft", "missing_fields", "uncertainties"],
             "properties": {
               "draft": { "$ref": "#/components/schemas/TextDraft" },
+              "missing_fields": { "type": "array", "items": { "type": "string", "enum": ["transaction_type", "amount", "transaction_date", "category_key"] } },
+              "uncertainties": { "type": "array", "items": { "$ref": "#/components/schemas/TextDraftUncertainty" } }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptDraftRequest": {
+        "type": "object",
+        "required": ["receipt"],
+        "properties": {
+          "receipt": { "type": "string", "format": "binary", "description": "Exactly one JPEG, PNG, or WebP image, at most 10 MB." }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptDraft": {
+        "type": "object",
+        "required": ["transaction_type", "amount", "transaction_date", "category_key", "notes"],
+        "properties": {
+          "transaction_type": { "type": "string", "enum": ["expense", null], "nullable": true },
+          "amount": { "type": "string", "pattern": "^(?:0|[1-9][0-9]{0,11})(?:\\.[0-9]{1,2})?$", "nullable": true },
+          "transaction_date": { "type": "string", "format": "date", "nullable": true },
+          "category_key": { "type": "string", "enum": ["expense_transport", "expense_accommodation", "expense_food", "expense_activities", "expense_other", null], "nullable": true },
+          "notes": { "type": "string", "nullable": true }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptDraftResponse": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["draft", "missing_fields", "uncertainties"],
+            "properties": {
+              "draft": { "$ref": "#/components/schemas/ReceiptDraft" },
               "missing_fields": { "type": "array", "items": { "type": "string", "enum": ["transaction_type", "amount", "transaction_date", "category_key"] } },
               "uncertainties": { "type": "array", "items": { "$ref": "#/components/schemas/TextDraftUncertainty" } }
             },
