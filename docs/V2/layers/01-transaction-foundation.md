@@ -159,7 +159,7 @@ proposal
 - proposal_version or created_at
 ```
 
-An answer is read-only. A proposal is produced only for an explicit supported change request; it is not a data change. The backend validates the provider response shape before it reaches the frontend.
+An answer is read-only. A proposal is produced only for an explicit supported change request; it is not a data change. For a clear supported edit, deletion, or expense-context command, the backend may build the proposal directly from the user's instruction and the verified selected record. Other requests may use the provider. Both paths produce the same proposal shape and pass through the same backend validation before the proposal reaches the frontend.
 
 The user can edit, cancel, or confirm a proposal. Confirmation sends the relevant normal update or delete command with the required idempotency and stale-record protections. It rechecks ownership, target state, fields, category compatibility, date, and all other normal validation. The UI reports success only after that command succeeds.
 

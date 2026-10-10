@@ -324,7 +324,7 @@ function CompanionPage() {
           <div className="mb-3">
             <label className="form-label" htmlFor="companion-question">Question</label>
             <textarea id="companion-question" className={`form-control${fieldError ? ' is-invalid' : ''}`} rows="3" maxLength={MAX_QUESTION_LENGTH} value={question} onChange={(event) => setQuestion(event.target.value)} aria-describedby="companion-question-help companion-question-error" />
-            <div id="companion-question-help" className="form-text">{question.length}/{MAX_QUESTION_LENGTH} characters. {selectedTarget ? 'Describe one edit, deletion, or expense-context change for the selected record.' : 'Supported topics include totals, category breakdowns, missing expense context, and “Find records matching: …”.'}</div>
+            <div id="companion-question-help" className="form-text">{question.length}/{MAX_QUESTION_LENGTH} characters. {selectedTarget ? 'For the selected record, clearly request an amount, date, category, or notes edit; deletion; or an expense-context change. Example: “Change the amount to €18.50”.' : 'Supported topics include totals, category breakdowns, missing expense context, and “Find records matching: …”.'}</div>
             {fieldError && <div id="companion-question-error" className="invalid-feedback">{fieldError}</div>}
           </div>
           {selectedTarget && <div className="alert alert-info" role="status">

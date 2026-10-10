@@ -138,6 +138,7 @@ describe('CompanionPage', () => {
     await user.click(screen.getByText('Evidence and limitations'))
     await user.click(screen.getByRole('button', { name: 'Prepare a change' }))
     expect(screen.getByText(/record #9/)).toBeInTheDocument()
+    expect(screen.getByText(/change the amount to €18\.50/i)).toBeInTheDocument()
     await user.type(screen.getByLabelText('Question'), 'Change the amount to €15')
     await user.click(screen.getByRole('button', { name: 'Ask for a change' }))
     expect(await screen.findByRole('region', { name: 'Companion proposal' })).toBeInTheDocument()
